@@ -17,10 +17,10 @@
 
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Backend**: Next.js API Routes, tRPC
-- **Database**: PostgreSQL, Prisma ORM
+- **Database**: Supabase (PostgreSQL), Prisma ORM
 - **Authentication**: JWT
 - **Styling**: Tailwind CSS, Radix UI
-- **Deployment**: Vercel, Docker
+- **Deployment**: Vercel, Supabase, Docker
 
 ## 📦 Kurulum
 
@@ -95,9 +95,18 @@ npm run deploy:docker
 ### Environment Variables
 
 ```env
-DATABASE_URL="postgresql://..."
+# Database - Supabase
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
+DIRECT_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT-REF].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="[ANON-KEY]"
+SUPABASE_SERVICE_ROLE_KEY="[SERVICE-ROLE-KEY]"
+
+# Application
 JWT_SECRET="your-secret-key"
-NEXT_PUBLIC_APP_URL="https://varsagel.com"
+NEXT_PUBLIC_APP_URL="https://varsagel.vercel.app"
 ```
 
 Tüm environment variables için `.env.example` dosyasına bakın.

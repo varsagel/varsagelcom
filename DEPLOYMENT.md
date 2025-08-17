@@ -5,37 +5,56 @@
 ### Option 1: Vercel Deployment (Recommended)
 
 #### Prerequisites
-- Vercel account
+- Vercel account (https://vercel.com)
 - GitHub repository
-- PostgreSQL database (Supabase, PlanetScale, or Neon)
+- Supabase account (https://supabase.com)
 
 #### Steps
 
-1. **Prepare Environment Variables**
-   ```bash
-   cp .env.production .env.local
-   ```
-   Update the following variables:
-   - `DATABASE_URL`: Your PostgreSQL connection string
+1. **Setup Supabase Database**
+   - Create new project at https://supabase.com
+   - Go to Settings → Database
+   - Copy connection string
+   - Go to Settings → API
+   - Copy Project URL and API Keys
+
+2. **Prepare Environment Variables**
+   Update the following variables in your .env file:
+   - `DATABASE_URL`: Your Supabase PostgreSQL connection string
+   - `DIRECT_URL`: Your Supabase PostgreSQL connection string
+   - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anon key
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
    - `JWT_SECRET`: Strong secret key (32+ characters)
-   - `NEXT_PUBLIC_APP_URL`: Your domain (https://varsagel.com)
+   - `NEXT_PUBLIC_APP_URL`: Your domain (https://varsagel.vercel.app)
 
-2. **Deploy to Vercel**
-   ```bash
-   npm install -g vercel
-   vercel login
-   vercel --prod
-   ```
+3. **Deploy to Vercel**
+   - Go to https://vercel.com and login
+   - Click "New Project"
+   - Import your GitHub repository
+   - Configure project settings:
+     - Framework Preset: Next.js
+     - Build Command: `npm run build`
+     - Output Directory: `.next`
+     - Install Command: `npm install`
 
-3. **Set Environment Variables in Vercel**
+4. **Set Environment Variables in Vercel**
    - Go to Vercel Dashboard → Project → Settings → Environment Variables
-   - Add all variables from `.env.production`
+   - Add all variables from your .env file:
+     - `DATABASE_URL`
+     - `DIRECT_URL`
+     - `NEXT_PUBLIC_SUPABASE_URL`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+     - `SUPABASE_SERVICE_ROLE_KEY`
+     - `JWT_SECRET`
+     - `NEXT_PUBLIC_APP_URL`
 
-4. **Run Database Migrations**
+5. **Run Database Migrations**
    ```bash
    npx prisma migrate deploy
    npx prisma generate
    ```
+   Or run these commands in Vercel's terminal after deployment.
 
 ### Option 2: Docker Deployment
 
