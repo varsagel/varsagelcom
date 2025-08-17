@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "name": "varsagel",
-  "alias": ["varsagel.com", "www.varsagel.com"],
+  "name": "varsagelcom",
+  "alias": ["varsagelcom.vercel.app", "www.varsagelcom.vercel.app"],
   "regions": ["fra1"],
   "builds": [
     {

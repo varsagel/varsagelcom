@@ -1,6 +1,6 @@
-# Varsagel - Alıcı-Talep Platformu
+# VarsagelCom - Alıcı-Talep Platformu
 
-**Varsagel**, kullanıcıların satın almak istedikleri ürün veya hizmetleri ilan olarak ekleyip, diğer kullanıcıların bu ilanlara teklif verebildiği modern bir e-ticaret platformudur.
+**VarsagelCom**, kullanıcıların satın almak istedikleri ürün veya hizmetleri ilan olarak ekleyip, diğer kullanıcıların bu ilanlara teklif verebildiği modern bir e-ticaret platformudur.
 
 ## 🚀 Özellikler
 

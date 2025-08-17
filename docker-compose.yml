@@ -4,10 +4,10 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: varsagel-postgres
+    container_name: varsagelcom-postgres
     environment:
-      POSTGRES_DB: varsagel_prod
-      POSTGRES_USER: varsagel
+      POSTGRES_DB: varsagelcom_prod
+      POSTGRES_USER: varsagelcom
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-varsagel_secure_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -16,32 +16,32 @@ services:
       - "5432:5432"
     restart: unless-stopped
     networks:
-      - varsagel-network
+      - varsagelcom-network
 
   # Redis for caching (optional)
   redis:
     image: redis:7-alpine
-    container_name: varsagel-redis
+    container_name: varsagelcom-redis
     ports:
       - "6379:6379"
     restart: unless-stopped
     networks:
-      - varsagel-network
+      - varsagelcom-network
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
 
-  # Varsagel Application
+  # VarsagelCom Application
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: varsagel-app
+    container_name: varsagelcom-app
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://varsagel:${POSTGRES_PASSWORD:-varsagel_secure_password}@postgres:5432/varsagel_prod
+      - DATABASE_URL=postgresql://varsagelcom:${POSTGRES_PASSWORD:-varsagel_secure_password}@postgres:5432/varsagelcom_prod
       - JWT_SECRET=${JWT_SECRET:-your-super-strong-production-jwt-secret}
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://varsagel.com}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://varsagelcom.vercel.app}
       - REDIS_URL=redis://redis:6379
     ports:
       - "3000:3000"
@@ -50,14 +50,14 @@ services:
       - redis
     restart: unless-stopped
     networks:
-      - varsagel-network
+      - varsagelcom-network
     volumes:
       - ./uploads:/app/uploads
 
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
-    container_name: varsagel-nginx
+    container_name: varsagelcom-nginx
     ports:
       - "80:80"
       - "443:443"
@@ -69,12 +69,12 @@ services:
       - app
     restart: unless-stopped
     networks:
-      - varsagel-network
+      - varsagelcom-network
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  varsagel-network:
+  varsagelcom-network:
     driver: bridge
