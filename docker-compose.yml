@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: varsagel-postgres
+    environment:
+      POSTGRES_DB: varsagel_prod
+      POSTGRES_USER: varsagel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-varsagel_secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - varsagel-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: varsagel-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - varsagel-network
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  # Varsagel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: varsagel-app
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://varsagel:${POSTGRES_PASSWORD:-varsagel_secure_password}@postgres:5432/varsagel_prod
+      - JWT_SECRET=${JWT_SECRET:-your-super-strong-production-jwt-secret}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://varsagel.com}
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - varsagel-network
+    volumes:
+      - ./uploads:/app/uploads
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: varsagel-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./uploads:/var/www/uploads:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - varsagel-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  varsagel-network:
+    driver: bridge

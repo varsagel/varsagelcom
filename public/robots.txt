@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://varsagel.com/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /profile/
+Disallow: /auth/
+
+# Allow important pages
+Allow: /listings
+Allow: /about
+Allow: /contact
+
+# Crawl delay
+Crawl-delay: 1
