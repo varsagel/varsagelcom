@@ -217,10 +217,10 @@ export default function TrendingListings({ type, position }: TrendingListingsPro
                       />
                     ) : (
                       <img
-                       src="/images/defaults/varsagel.com.jpeg"
-                       alt={listing.title}
-                       className="w-full h-full object-cover"
-                     />
+                        src="/images/defaults/varsagel.com.jpeg"
+                        alt={listing.title}
+                        className="w-full h-full object-cover rounded-lg shadow-md group-hover:shadow-lg transition-shadow"
+                      />
                     )}
                   </div>
                   

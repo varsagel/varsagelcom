@@ -494,7 +494,7 @@ export default function ProfilePage() {
           </div>
           <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-destructive to-destructive/70 bg-clip-text text-transparent">Profil Bulunamadı</h2>
           <p className="text-muted-foreground mb-8 max-w-md">{error || 'Profil bilgileriniz yüklenemedi. Lütfen tekrar deneyin.'}</p>
-          <Button onClick={() => window.location.reload()} className="rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:shadow-md transition-all px-6 py-2.5">
+          <Button onClick={() => typeof window !== 'undefined' && window.location.reload()} className="rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:shadow-md transition-all px-6 py-2.5">
             <RefreshCcw className="mr-2 h-5 w-5" />
             Tekrar Dene
           </Button>

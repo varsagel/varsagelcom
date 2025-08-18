@@ -2,11 +2,14 @@
   "name": "varsagelcom",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "scripts": {
-    "dev": "bun run next dev",
-    "build": "bun run next build",
-    "start": "bun run next start",
-    "lint": "bun run next lint",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "analyze": "ANALYZE=true bun run build",
     "db:generate": "bun prisma generate",
     "db:push": "bun prisma db push",

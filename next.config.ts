@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+const webpack = require('webpack');
 
 // Bundle analyzer
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
@@ -6,43 +7,24 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig: NextConfig = {
-  experimental: {
-    optimizeCss: true,
-    optimizeServerReact: true,
-    optimizePackageImports: [
-      '@heroicons/react',
-      'lucide-react',
-      '@prisma/client'
-    ],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-  },
   webpack: (config, { dev, isServer }) => {
-    // Production optimizations
-    if (!dev) {
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\/]node_modules[\/]/,
-            name: 'vendors',
-            chunks: 'all',
-            priority: 10,
-          },
-          common: {
-            name: 'common',
-            minChunks: 2,
-            chunks: 'all',
-            priority: 5,
-          },
-        },
+    // Fix for 'self is not defined' error
+    if (isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
       };
+      
+      // Define global variables for server-side
+       config.plugins.push(
+         new webpack.DefinePlugin({
+           'typeof window': JSON.stringify('undefined'),
+           'typeof self': JSON.stringify('undefined'),
+           'typeof global': JSON.stringify('object'),
+         })
+       );
     }
     
     return config;
