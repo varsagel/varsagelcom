@@ -5,22 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area
-} from 'recharts';
-import { 
   TrendingUp, 
   TrendingDown, 
   Users, 
@@ -73,104 +57,62 @@ interface AnalyticsData {
   };
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
 export default function AdminAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [timeRange, setTimeRange] = useState('7d');
 
   useEffect(() => {
-    fetchAnalytics();
+    fetchAnalyticsData();
   }, [timeRange]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`/api/admin/analytics?timeRange=${timeRange}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
+      const response = await fetch(`/api/admin/analytics?range=${timeRange}`);
       if (response.ok) {
         const analyticsData = await response.json();
         setData(analyticsData);
-      } else {
-        console.error('Failed to fetch analytics');
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      console.error('Analytics data fetch error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY'
-    }).format(amount);
-  };
-
-  const getGrowthIcon = (growth: number) => {
-    if (growth > 0) {
-      return <TrendingUp className="h-4 w-4 text-green-600" />;
-    } else if (growth < 0) {
-      return <TrendingDown className="h-4 w-4 text-red-600" />;
-    }
-    return null;
-  };
-
-  const getGrowthColor = (growth: number) => {
-    if (growth > 0) return 'text-green-600';
-    if (growth < 0) return 'text-red-600';
-    return 'text-gray-600';
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Veri Yüklenemedi</h2>
-          <p className="text-gray-600">Analitik verileri yüklenirken bir hata oluştu.</p>
+      <div className="p-6">
+        <div className="text-center text-gray-500">
+          Analytics verisi yüklenemedi.
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analitik</h1>
-          <p className="text-gray-600 mt-1">Platform performansını ve istatistiklerini görüntüleyin</p>
-        </div>
-        <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+        <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+        <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Zaman aralığı seç" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="7d">Son 7 Gün</SelectItem>
@@ -184,146 +126,119 @@ export default function AdminAnalyticsPage() {
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam Kullanıcı</p>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(data.overview.totalUsers)}</p>
-                <div className={`flex items-center mt-1 ${getGrowthColor(data.overview.userGrowth)}`}>
-                  {getGrowthIcon(data.overview.userGrowth)}
-                  <span className="text-sm ml-1">{Math.abs(data.overview.userGrowth)}%</span>
-                </div>
-              </div>
-              <Users className="h-8 w-8 text-blue-600" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Kullanıcı</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data.overview.totalUsers.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              <span className={`inline-flex items-center ${
+                data.overview.userGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {data.overview.userGrowth >= 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                )}
+                {Math.abs(data.overview.userGrowth)}%
+              </span>
+              {' '}geçen döneme göre
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam İlan</p>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(data.overview.totalListings)}</p>
-                <div className={`flex items-center mt-1 ${getGrowthColor(data.overview.listingGrowth)}`}>
-                  {getGrowthIcon(data.overview.listingGrowth)}
-                  <span className="text-sm ml-1">{Math.abs(data.overview.listingGrowth)}%</span>
-                </div>
-              </div>
-              <FileText className="h-8 w-8 text-green-600" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam İlan</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data.overview.totalListings.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              <span className={`inline-flex items-center ${
+                data.overview.listingGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {data.overview.listingGrowth >= 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                )}
+                {Math.abs(data.overview.listingGrowth)}%
+              </span>
+              {' '}geçen döneme göre
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam Teklif</p>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(data.overview.totalOffers)}</p>
-                <div className={`flex items-center mt-1 ${getGrowthColor(data.overview.offerGrowth)}`}>
-                  {getGrowthIcon(data.overview.offerGrowth)}
-                  <span className="text-sm ml-1">{Math.abs(data.overview.offerGrowth)}%</span>
-                </div>
-              </div>
-              <MessageSquare className="h-8 w-8 text-yellow-600" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Teklif</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data.overview.totalOffers.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              <span className={`inline-flex items-center ${
+                data.overview.offerGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {data.overview.offerGrowth >= 0 ? (
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                )}
+                {Math.abs(data.overview.offerGrowth)}%
+              </span>
+              {' '}geçen döneme göre
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam Gelir</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.overview.totalRevenue)}</p>
-                <div className="flex items-center mt-1 text-green-600">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm ml-1">+12.5%</span>
-                </div>
-              </div>
-              <DollarSign className="h-8 w-8 text-purple-600" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Gelir</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₺{data.overview.totalRevenue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              <span className="text-green-600">
+                <TrendingUp className="h-3 w-3 mr-1 inline" />
+                +12.5%
+              </span>
+              {' '}geçen döneme göre
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Analytics Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
+      {/* Detailed Analytics */}
+      <Tabs defaultValue="users" className="space-y-4">
+        <TabsList>
           <TabsTrigger value="users">Kullanıcılar</TabsTrigger>
           <TabsTrigger value="listings">İlanlar</TabsTrigger>
           <TabsTrigger value="offers">Teklifler</TabsTrigger>
           <TabsTrigger value="reviews">Değerlendirmeler</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Kullanıcı Aktivitesi</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={data.userStats.daily}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="users" stackId="1" stroke="#8884d8" fill="#8884d8" />
-                    <Area type="monotone" dataKey="newUsers" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>İlan Kategorileri</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.listingStats.categories}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ category, percentage }) => `${category} (${percentage}%)`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {data.listingStats.categories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
         <TabsContent value="users" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Kullanıcı Büyümesi</CardTitle>
+                <CardTitle>Günlük Kullanıcı Aktivitesi</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.userStats.monthly}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="users" stroke="#8884d8" strokeWidth={2} />
-                    <Line type="monotone" dataKey="newUsers" stroke="#82ca9d" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.userStats.daily.slice(-7).map((day, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{day.date}</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{day.users} kullanıcı</div>
+                        <div className="text-xs text-green-600">+{day.newUsers} yeni</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -332,25 +247,14 @@ export default function AdminAnalyticsPage() {
                 <CardTitle>Kullanıcı Demografisi</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.userStats.demographics}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {data.userStats.demographics.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.userStats.demographics.map((demo, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{demo.name}</span>
+                      <span className="text-sm font-medium">{demo.value}%</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -360,20 +264,20 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>İlan Aktivitesi</CardTitle>
+                <CardTitle>Kategori Dağılımı</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.listingStats.daily}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="listings" fill="#8884d8" />
-                    <Bar dataKey="approved" fill="#82ca9d" />
-                    <Bar dataKey="pending" fill="#ffc658" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.listingStats.categories.map((category, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{category.category}</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{category.count} ilan</div>
+                        <div className="text-xs text-gray-500">{category.percentage}%</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -382,15 +286,14 @@ export default function AdminAnalyticsPage() {
                 <CardTitle>Fiyat Aralıkları</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.listingStats.priceRanges}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="range" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.listingStats.priceRanges.map((range, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{range.range}</span>
+                      <span className="text-sm font-medium">{range.count} ilan</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -400,47 +303,36 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Teklif Aktivitesi</CardTitle>
+                <CardTitle>Teklif Durumu</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.offerStats.daily}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="offers" stroke="#8884d8" strokeWidth={2} />
-                    <Line type="monotone" dataKey="accepted" stroke="#82ca9d" strokeWidth={2} />
-                    <Line type="monotone" dataKey="rejected" stroke="#ff7300" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.offerStats.statusDistribution.map((status, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{status.status}</span>
+                      <span className="text-sm font-medium">{status.count} teklif</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Teklif Durumları</CardTitle>
+                <CardTitle>Günlük Teklif Aktivitesi</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.offerStats.statusDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ status, count }) => `${status}: ${count}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {data.offerStats.statusDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.offerStats.daily.slice(-7).map((day, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{day.date}</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{day.offers} teklif</div>
+                        <div className="text-xs text-green-600">{day.accepted} kabul</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -450,35 +342,38 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Değerlendirme Aktivitesi</CardTitle>
+                <CardTitle>Puan Dağılımı</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={data.reviewStats.daily}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="reviews" stroke="#8884d8" fill="#8884d8" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.reviewStats.ratingDistribution.map((rating, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm flex items-center">
+                        {rating.rating} <Star className="h-3 w-3 ml-1 text-yellow-500" />
+                      </span>
+                      <span className="text-sm font-medium">{rating.count} değerlendirme</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Puan Dağılımı</CardTitle>
+                <CardTitle>Günlük Değerlendirmeler</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.reviewStats.ratingDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="rating" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {data.reviewStats.daily.slice(-7).map((day, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{day.date}</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{day.reviews} değerlendirme</div>
+                        <div className="text-xs text-yellow-600">Ort: {day.averageRating.toFixed(1)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>

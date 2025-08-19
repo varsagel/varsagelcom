@@ -8,7 +8,8 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+COPY prisma ./prisma/
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -38,12 +39,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 
-# Copy package.json for prisma
+# Copy package.json and node_modules for prisma
 COPY --from=builder /app/package.json ./package.json
-
-# Install production dependencies and Prisma
-RUN npm install --only=production
-RUN npx prisma generate
+COPY --from=builder /app/node_modules ./node_modules
 
 USER nextjs
 

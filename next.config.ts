@@ -7,6 +7,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   webpack: (config, { dev, isServer }) => {
     // Fix for 'self is not defined' error
     if (isServer) {

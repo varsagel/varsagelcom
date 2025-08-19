@@ -1,41 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from './lib/auth';
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyAuth } from './lib/auth'
 
-// CSRF koruması için güvenli HTTP metodları
-const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
-// CSRF token kontrolü
-function validateCSRF(request: NextRequest): boolean {
-  // Güvenli metodlar için CSRF kontrolü gerekmiyor
-  if (SAFE_METHODS.includes(request.method)) {
-    return true;
+async function validateCSRF(request: NextRequest): Promise<boolean> {
+  const method = request.method
+  
+  // Güvenli HTTP metodları için CSRF kontrolü yapma
+  if (SAFE_METHODS.includes(method)) {
+    return true
   }
-  
-  // Same-origin kontrolü
-  const origin = request.headers.get('origin');
-  const host = request.headers.get('host');
-  
-  if (origin && host) {
-    try {
-      const originUrl = new URL(origin);
-      return originUrl.host === host;
-    } catch {
-      return false;
-    }
+
+  const token = request.headers.get('x-csrf-token') || 
+                request.headers.get('X-CSRF-Token') ||
+                request.nextUrl.searchParams.get('csrf_token')
+
+  if (!token) {
+    return false
   }
+
+  // Token cache kontrolü
+  const cacheKey = `csrf_${token}`
   
-  // Referer kontrolü (fallback)
-  const referer = request.headers.get('referer');
-  if (referer && host) {
-    try {
-      const refererUrl = new URL(referer);
-      return refererUrl.host === host;
-    } catch {
-      return false;
-    }
+  try {
+    // Basit token validasyonu (gerçek uygulamada daha güvenli olmalı)
+    return token.length > 10 && /^[a-zA-Z0-9]+$/.test(token)
+  } catch (error) {
+    console.error('CSRF validation error:', error)
+    return false
   }
-  
-  return false;
 }
 
 // Token cache için Map
@@ -63,15 +56,7 @@ const protectedRoutes = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // CSRF koruması kontrolü
-  if (!validateCSRF(request)) {
-    return NextResponse.json(
-      { error: 'CSRF validation failed' },
-      { status: 403 }
-    );
-  }
-
-  // API rotası kontrolü
+  // Sadece korumalı API rotalarını kontrol et
   if (pathname.startsWith('/api/')) {
     // Korumalı API rotası kontrolü
     if (protectedRoutes.some(route => pathname.startsWith(route))) {
@@ -93,10 +78,8 @@ export async function middleware(request: NextRequest) {
         if (cachedData && cachedData.expiry > Date.now()) {
           // Cache'den kullan
           userId = cachedData.userId;
-          console.log('Middleware - Using cached token for userId:', userId);
         } else {
           // Token'ı doğrula ve cache'e ekle
-          console.log('Middleware - Verifying token:', token);
           const payload = await verifyAuth(token);
           userId = payload.userId;
           
@@ -110,8 +93,6 @@ export async function middleware(request: NextRequest) {
           if (Math.random() < 0.1) { // %10 ihtimalle
             cleanExpiredTokens();
           }
-          
-          // Token verified and cached
         }
         
         // Kullanıcı bilgisini request'e ekle
@@ -137,9 +118,11 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Middleware'in çalışacağı rotaları belirt
 export const config = {
   matcher: [
+    /*
+     * Match only API routes
+     */
     '/api/:path*',
   ],
-};
+}

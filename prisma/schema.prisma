@@ -1,168 +1,145 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  name          String
-  profileImage  String?
-  phone         String?
-  location      String?
-  isBanned      Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  rating        Float     @default(0)
-  reviewCount   Int       @default(0)
-  
-  // İlişkiler
-  listings      Listing[]  // Kullanıcının açtığı ilanlar
-  offers        Offer[]    // Kullanıcının verdiği teklifler
-  favorites     Favorite[] // Kullanıcının favorileri
-  reviews       Review[]   @relation("ReviewsReceived") // Kullanıcının aldığı yorumlar
-  reviewsGiven  Review[]   @relation("ReviewsGiven")   // Kullanıcının verdiği yorumlar
-  questionsAsked Question[] @relation("QuestionsAsked") // Kullanıcının sorduğu sorular
-  answersGiven  Answer[]   @relation("AnswersGiven")   // Kullanıcının verdiği cevaplar
-  listingViews  ListingView[] // Kullanıcının görüntülediği ilanlar
-  messages      Message[]  // Kullanıcının gönderdiği mesajlar
-  reportsCreated Report[]  @relation("ReportsCreated") // Kullanıcının oluşturduğu raporlar
-  reportsResolved Report[] @relation("ReportsResolved") // Kullanıcının çözdüğü raporlar
-  adminLogs     AdminLog[] @relation("AdminLogs") // Kullanıcının admin logları
+  id              String        @id @default(uuid())
+  email           String        @unique
+  password        String
+  name            String
+  profileImage    String?
+  phone           String?
+  location        String?
+  isBanned        Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  rating          Float         @default(0)
+  reviewCount     Int           @default(0)
+  adminLogs       AdminLog[]    @relation("AdminLogs")
+  answersGiven    Answer[]      @relation("AnswersGiven")
+  favorites       Favorite[]
+  listings        Listing[]
+  listingViews    ListingView[]
+  messages        Message[]
+  offers          Offer[]
+  questionsAsked  Question[]    @relation("QuestionsAsked")
+  reportsCreated  Report[]      @relation("ReportsCreated")
+  reportsResolved Report[]      @relation("ReportsResolved")
+  reviewsGiven    Review[]      @relation("ReviewsGiven")
+  reviews         Review[]      @relation("ReviewsReceived")
 }
 
 model Listing {
-  id            String    @id @default(uuid())
-  displayNumber String    @unique // Benzersiz görüntüleme numarası
-  title         String
-  description   String
-  category      String
-  subcategory   String?
-  location      String
-  district      String?
-  budgetMin     Float
-  budgetMax     Float
-  price         Float?    // İlan fiyatı
-  isFeatured    Boolean   @default(false) // Öne çıkarılmış ilan
-  featuredUntil DateTime? // Öne çıkarma bitiş tarihi
-  images        String    // JSON olarak saklanacak resim URL'leri
-  videoUrl      String?
-  expiresAt     DateTime
-  status        String    @default("active") // active, expired, closed
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  likeCount     Int       @default(0)
-  favoriteCount Int       @default(0)
-  viewCount     Int       @default(0)
-  
-  // Kategori bazlı özel alanlar
-  categorySpecificData Json?  // Kategori bazlı özel veriler (JSON formatında)
-  mileageMin          Int?    // En az kilometre
-  mileageMax          Int?    // En çok kilometre
-  icon               String? // İlan ikonu
-  
-  // İlişkiler
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  offers        Offer[]
-  favorites     Favorite[]
-  questions     Question[]
-  views         ListingView[]
-  reviews       Review[]
-  conversations Conversation[]
+  id                   String         @id @default(uuid())
+  displayNumber        String         @unique
+  title                String
+  description          String
+  category             String
+  subcategory          String?
+  location             String
+  district             String?
+  budgetMin            Float
+  budgetMax            Float
+  price                Float?
+  isFeatured           Boolean        @default(false)
+  featuredUntil        DateTime?
+  images               String
+  videoUrl             String?
+  expiresAt            DateTime
+  status               String         @default("active")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  likeCount            Int            @default(0)
+  favoriteCount        Int            @default(0)
+  viewCount            Int            @default(0)
+  categorySpecificData Json?
+  mileageMin           Int?
+  mileageMax           Int?
+  icon                 String?
+  userId               String
+  conversations        Conversation[]
+  favorites            Favorite[]
+  user                 User           @relation(fields: [userId], references: [id])
+  views                ListingView[]
+  offers               Offer[]
+  questions            Question[]
+  reviews              Review[]
 }
 
 model Offer {
-  id                String   @id @default(uuid())
-  displayNumber     String   @unique // Benzersiz görüntüleme numarası
-  userId            String
-  listingId         String
-  price             Float
-  duration          String    // Teslimat süresi (örn: "2 hafta", "1 ay")
-  message           String
-  experience        String   @default("")
-  portfolio         String   @default("")
-  guaranteeOffered  Boolean  @default(false)
-  revisionCount     Int      @default(0)
-  additionalServices Json @default("[]")
-  status            String   @default("pending") // pending, accepted, rejected
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  // Kategori bazlı özel alanlar
-  categorySpecificData Json?  // Kategori bazlı özel veriler (JSON formatında)
-  
-  // İlişkiler
-  user        User      @relation(fields: [userId], references: [id])
-  listing     Listing   @relation(fields: [listingId], references: [id])
-  conversation Conversation?
+  id                   String        @id @default(uuid())
+  displayNumber        String        @unique
+  userId               String
+  listingId            String
+  price                Float
+  duration             String
+  message              String
+  experience           String        @default("")
+  portfolio            String        @default("")
+  guaranteeOffered     Boolean       @default(false)
+  revisionCount        Int           @default(0)
+  additionalServices   Json          @default("[]")
+  status               String        @default("pending")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  categorySpecificData Json?
+  conversation         Conversation?
+  listing              Listing       @relation(fields: [listingId], references: [id])
+  user                 User          @relation(fields: [userId], references: [id])
 }
 
 model Favorite {
-  id          String    @id @default(uuid())
-  createdAt   DateTime  @default(now())
-  
-  // İlişkiler
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  listingId   String
-  listing     Listing   @relation(fields: [listingId], references: [id])
-  
-  // Benzersiz kısıtlama
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userId    String
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
   @@unique([userId, listingId])
 }
 
 model Review {
-  id          String    @id @default(uuid())
-  rating      Int       // 1-5 arası puanlama
-  comment     String
-  createdAt   DateTime  @default(now())
-  
-  // İlişkiler
-  reviewerId  String
-  reviewer    User      @relation("ReviewsGiven", fields: [reviewerId], references: [id])
-  userId      String
-  user        User      @relation("ReviewsReceived", fields: [userId], references: [id])
-  listingId   String?
-  listing     Listing?  @relation(fields: [listingId], references: [id])
+  id         String   @id @default(uuid())
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
+  reviewerId String
+  userId     String
+  listingId  String?
+  listing    Listing? @relation(fields: [listingId], references: [id])
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  user       User     @relation("ReviewsReceived", fields: [userId], references: [id])
 }
 
 model Notification {
-  id          String    @id @default(uuid())
-  type        String    // new_offer, offer_accepted, listing_expiring, etc.
-  title       String?   // Bildirim başlığı
-  message     String
-  isRead      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  relatedId   String?   // İlgili kayıt ID'si (ilan, teklif vb.)
-  
-  // İlişkiler
-  userId      String
-  metadata    Json?     // İlgili veri (ilan ID, teklif ID vb.)
+  id        String   @id @default(uuid())
+  type      String
+  title     String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  relatedId String?
+  userId    String
+  metadata  Json?
 }
 
 model Conversation {
-  id          String    @id @default(uuid())
-  offerId     String    @unique
-  offer       Offer     @relation(fields: [offerId], references: [id])
-  listingId   String?   // İlan ID'si
-  listing     Listing?  @relation(fields: [listingId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // İlişkiler
-  messages    Message[]
+  id        String    @id @default(uuid())
+  offerId   String    @unique
+  listingId String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  listing   Listing?  @relation(fields: [listingId], references: [id])
+  offer     Offer     @relation(fields: [offerId], references: [id])
+  messages  Message[]
 }
 
 model Message {
@@ -172,79 +149,66 @@ model Message {
   conversationId String
   createdAt      DateTime     @default(now())
   isRead         Boolean      @default(false)
-  
-  // İlişkiler
-  sender         User         @relation(fields: [senderId], references: [id])
   conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation(fields: [senderId], references: [id])
 }
 
 model Question {
-  id          String    @id @default(uuid())
-  content     String
-  createdAt   DateTime  @default(now())
-  
-  // İlişkiler
-  listingId   String
-  listing     Listing   @relation(fields: [listingId], references: [id])
-  askerId     String
-  asker       User      @relation("QuestionsAsked", fields: [askerId], references: [id])
-  answer      Answer?
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  listingId String
+  askerId   String
+  answer    Answer?
+  asker     User     @relation("QuestionsAsked", fields: [askerId], references: [id])
+  listing   Listing  @relation(fields: [listingId], references: [id])
 }
 
 model Answer {
-  id           String    @id @default(uuid())
-  content      String
-  createdAt    DateTime  @default(now())
-  
-  // İlişkiler
-  questionId   String    @unique
-  question     Question  @relation(fields: [questionId], references: [id])
-  responderId  String
-  responder    User      @relation("AnswersGiven", fields: [responderId], references: [id])
+  id          String   @id @default(uuid())
+  content     String
+  createdAt   DateTime @default(now())
+  questionId  String   @unique
+  responderId String
+  question    Question @relation(fields: [questionId], references: [id])
+  responder   User     @relation("AnswersGiven", fields: [responderId], references: [id])
 }
 
 model ListingView {
-  id          String    @id @default(uuid())
-  createdAt   DateTime  @default(now())
-  ipAddress   String?   // IP adresi anonim kullanıcılar için
-  
-  // İlişkiler
-  userId      String?
-  user        User?     @relation(fields: [userId], references: [id])
-  listingId   String
-  listing     Listing   @relation(fields: [listingId], references: [id])
-  
-  // Benzersiz kısıtlama - aynı kullanıcı aynı ilanı sadece bir kez görüntüleyebilir
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userId    String?
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
   @@unique([userId, listingId])
 }
 
 model Report {
-  id              String    @id @default(uuid())
-  targetType      String    // USER, LISTING, REVIEW, MESSAGE
-  targetId        String    // Raporlanan öğenin ID'si
-  reason          String    // Rapor nedeni
-  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, FLAGGED, RESOLVED
-  priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
-  moderatorNotes  String?
-  createdAt       DateTime  @default(now())
-  resolvedAt      DateTime?
-  
-  // İlişkiler
-  reportedById    String
-  reportedBy      User      @relation("ReportsCreated", fields: [reportedById], references: [id])
-  resolvedById    String?
-  resolvedBy      User?     @relation("ReportsResolved", fields: [resolvedById], references: [id])
+  id             String    @id @default(uuid())
+  targetType     String
+  targetId       String
+  reason         String
+  status         String    @default("PENDING")
+  priority       String    @default("NORMAL")
+  moderatorNotes String?
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+  reportedById   String
+  resolvedById   String?
+  reportedBy     User      @relation("ReportsCreated", fields: [reportedById], references: [id])
+  resolvedBy     User?     @relation("ReportsResolved", fields: [resolvedById], references: [id])
 }
 
 model AdminLog {
-  id          String    @id @default(uuid())
-  action      String    // Yapılan işlem
-  targetType  String    // İşlem yapılan öğe türü
-  targetId    String    // İşlem yapılan öğe ID'si
-  details     Json?     // İşlem detayları
-  createdAt   DateTime  @default(now())
-  
-  // İlişkiler
-  adminId     String
-  admin       User      @relation("AdminLogs", fields: [adminId], references: [id])
+  id         String   @id @default(uuid())
+  action     String
+  targetType String
+  targetId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+  adminId    String
+  admin      User     @relation("AdminLogs", fields: [adminId], references: [id])
 }
