@@ -35,8 +35,8 @@ export const authRouter = createTRPCRouter({
         
         // Test basic connection
         const { count, error } = await ctx.supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true });
+           .from('User')
+           .select('*', { count: 'exact', head: true });
         
         if (error) {
           throw new Error(`Supabase connection failed: ${error.message}`);
@@ -72,10 +72,10 @@ export const authRouter = createTRPCRouter({
 
       // Find user
       const { data: user, error } = await ctx.supabase
-        .from('users')
-        .select('id, email, name, password, profileImage, phone, location, rating, reviewCount')
-        .eq('email', email)
-        .single();
+         .from('User')
+         .select('id, email, name, password, profileImage, phone, location, rating, reviewCount')
+         .eq('email', email)
+         .single();
       
       if (error && error.code !== 'PGRST116') {
         throw new TRPCError({
@@ -137,7 +137,7 @@ export const authRouter = createTRPCRouter({
 
         console.log('Checking for existing user...');
         const { data: existingUser, error: checkError } = await ctx.supabase
-          .from('users')
+          .from('User')
           .select('id')
           .eq('email', email)
           .single();
@@ -154,21 +154,29 @@ export const authRouter = createTRPCRouter({
         const hashedPassword = await bcrypt.hash(password, 10);
 
         console.log('Creating user in database...');
+        const { nanoid } = await import('nanoid');
+        const userId = nanoid();
+        const now = new Date().toISOString();
+        
         const { data: user, error: createError } = await ctx.supabase
-          .from('users')
+          .from('User')
           .insert({
+            id: userId,
             email,
             password: hashedPassword,
             name,
+            createdAt: now,
+            updatedAt: now,
           })
           .select('id, email, name')
           .single();
 
         if (createError || !user) {
           console.error('Failed to create user:', createError);
+          console.error('Create error details:', JSON.stringify(createError, null, 2));
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to create user',
+            message: `Failed to create user: ${createError?.message || 'Unknown error'}`,
           });
         }
         console.log('User created successfully:', user.id);
@@ -208,10 +216,10 @@ export const authRouter = createTRPCRouter({
 
   getProfile: protectedProcedure.query(async ({ ctx }) => {
     const { data: user, error } = await ctx.supabase
-      .from('users')
-      .select('id, email, name, profileImage, phone, location, rating, reviewCount, createdAt, updatedAt')
-      .eq('id', ctx.session.user.id)
-      .single();
+       .from('User')
+       .select('id, email, name, profileImage, phone, location, rating, reviewCount, createdAt, updatedAt')
+       .eq('id', ctx.session.user.id)
+       .single();
     
     if (error) {
       throw new TRPCError({
@@ -241,11 +249,11 @@ export const authRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const { data: updatedUser, error } = await ctx.supabase
-        .from('users')
-        .update(input)
-        .eq('id', ctx.session.user.id)
-        .select('id, email, name, profileImage, phone, location, rating, reviewCount, updatedAt')
-        .single();
+         .from('User')
+         .update(input)
+         .eq('id', ctx.session.user.id)
+         .select('id, email, name, profileImage, phone, location, rating, reviewCount, updatedAt')
+         .single();
       
       if (error || !updatedUser) {
         throw new TRPCError({
