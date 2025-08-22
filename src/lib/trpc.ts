@@ -1,9 +1,8 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { ZodError } from 'zod';
-import { prisma } from './prisma';
+import { supabase } from './supabase';
 
 interface Session {
   user: {
@@ -24,7 +23,7 @@ interface Session {
 
 interface CreateContextOptions {
   session: Session | null;
-  prisma: PrismaClient;
+  supabase: typeof supabase;
 }
 
 /**
@@ -40,7 +39,7 @@ interface CreateContextOptions {
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
-    prisma: opts.prisma,
+    supabase: opts.supabase,
   };
 };
 
@@ -67,11 +66,13 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
       ) as { userId: string; email: string };
       
       try {
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.userId },
-        });
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('id, email, name')
+          .eq('id', decoded.userId)
+          .single();
         
-        if (user) {
+        if (user && !error) {
           session = {
             user: {
               id: user.id,
@@ -93,7 +94,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   return createInnerTRPCContext({
     session,
-    prisma,
+    supabase,
   });
 };
 

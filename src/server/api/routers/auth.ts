@@ -29,15 +29,21 @@ export const authRouter = createTRPCRouter({
     .query(async ({ ctx }) => {
       try {
         console.log('Testing database connection...');
-        console.log('Prisma client:', !!ctx.prisma);
+        console.log('Supabase client:', !!ctx.supabase);
         console.log('Environment:', process.env.NODE_ENV);
-        console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+        console.log('SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
         
         // Test basic connection
-        await ctx.prisma.$connect();
-        console.log('Prisma connected successfully');
+        const { count, error } = await ctx.supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
         
-        const userCount = await ctx.prisma.user.count();
+        if (error) {
+          throw new Error(`Supabase connection failed: ${error.message}`);
+        }
+        
+        console.log('Supabase connected successfully');
+        const userCount = count || 0;
         console.log('Database connection successful, user count:', userCount);
         return { success: true, userCount, environment: process.env.NODE_ENV };
       } catch (error) {
@@ -65,9 +71,18 @@ export const authRouter = createTRPCRouter({
       const { email, password } = input;
 
       // Find user
-      const user = await ctx.prisma.user.findUnique({
-        where: { email },
-      });
+      const { data: user, error } = await ctx.supabase
+        .from('users')
+        .select('id, email, name, password, profileImage, phone, location, rating, reviewCount')
+        .eq('email', email)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Database error',
+        });
+      }
 
       if (!user) {
         throw new TRPCError({
@@ -121,11 +136,13 @@ export const authRouter = createTRPCRouter({
         const { email, password, name } = input;
 
         console.log('Checking for existing user...');
-        const existingUser = await ctx.prisma.user.findUnique({
-          where: { email },
-        });
+        const { data: existingUser, error: checkError } = await ctx.supabase
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .single();
 
-        if (existingUser) {
+        if (existingUser && !checkError) {
           console.log('User already exists:', email);
           throw new TRPCError({
             code: 'CONFLICT',
@@ -137,13 +154,23 @@ export const authRouter = createTRPCRouter({
         const hashedPassword = await bcrypt.hash(password, 10);
 
         console.log('Creating user in database...');
-        const user = await ctx.prisma.user.create({
-          data: {
+        const { data: user, error: createError } = await ctx.supabase
+          .from('users')
+          .insert({
             email,
             password: hashedPassword,
             name,
-          },
-        });
+          })
+          .select('id, email, name')
+          .single();
+
+        if (createError || !user) {
+          console.error('Failed to create user:', createError);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create user',
+          });
+        }
         console.log('User created successfully:', user.id);
 
         console.log('Generating JWT token...');
@@ -180,21 +207,18 @@ export const authRouter = createTRPCRouter({
     }),
 
   getProfile: protectedProcedure.query(async ({ ctx }) => {
-    const user = await ctx.prisma.user.findUnique({
-      where: { id: ctx.session.user.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        profileImage: true,
-        phone: true,
-        location: true,
-        rating: true,
-        reviewCount: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const { data: user, error } = await ctx.supabase
+      .from('users')
+      .select('id, email, name, profileImage, phone, location, rating, reviewCount, createdAt, updatedAt')
+      .eq('id', ctx.session.user.id)
+      .single();
+    
+    if (error) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Database error',
+      });
+    }
 
     if (!user) {
       throw new TRPCError({
@@ -216,21 +240,19 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const updatedUser = await ctx.prisma.user.update({
-        where: { id: ctx.session.user.id },
-        data: input,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          profileImage: true,
-          phone: true,
-          location: true,
-          rating: true,
-          reviewCount: true,
-          updatedAt: true,
-        },
-      });
+      const { data: updatedUser, error } = await ctx.supabase
+        .from('users')
+        .update(input)
+        .eq('id', ctx.session.user.id)
+        .select('id, email, name, profileImage, phone, location, rating, reviewCount, updatedAt')
+        .single();
+      
+      if (error || !updatedUser) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update profile',
+        });
+      }
 
       return updatedUser;
     }),
