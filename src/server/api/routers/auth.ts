@@ -5,6 +5,33 @@ import jwt from 'jsonwebtoken';
 import { createTRPCRouter, publicProcedure, protectedProcedure } from '../../../lib/trpc';
 
 export const authRouter = createTRPCRouter({
+  checkEnv: publicProcedure
+    .query(async ({ ctx }) => {
+      const envStatus = {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL_exists: !!process.env.DATABASE_URL,
+        DIRECT_URL_exists: !!process.env.DIRECT_URL,
+        SUPABASE_URL_exists: !!process.env.SUPABASE_URL,
+        SUPABASE_ANON_KEY_exists: !!process.env.SUPABASE_ANON_KEY,
+        SUPABASE_SERVICE_ROLE_KEY_exists: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        JWT_SECRET_exists: !!process.env.JWT_SECRET,
+      };
+
+      let supabaseStatus = 'not_tested';
+      try {
+        const { count } = await ctx.supabase
+          .from('User')
+          .select('*', { count: 'exact', head: true });
+        supabaseStatus = 'connected';
+      } catch (error) {
+        supabaseStatus = `error: ${error.message}`;
+      }
+
+      return {
+        env: envStatus,
+        supabase: supabaseStatus,
+      };
+    }),
 
   login: publicProcedure.query(() => {
     return { message: 'tRPC is working!' };
