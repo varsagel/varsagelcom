@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getUserId } from '@/lib/auth';
 import bcrypt from 'bcrypt';
 
@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Kullanıcıyı getir
-    const supabase = createClient();
+    const supabase = createSupabaseServerClient();
 
     const { data: userData, error: fetchError } = await supabase
       .from('users')
