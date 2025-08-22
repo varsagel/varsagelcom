@@ -5,11 +5,14 @@ import { createId } from '@paralleldrive/cuid2';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Register endpoint called');
     const body = await request.json();
     const { name, email, password } = body;
+    console.log('Request body parsed:', { name, email, hasPassword: !!password });
 
     // Validate input
     if (!name || !email || !password) {
+      console.log('Validation failed: missing required fields');
       return NextResponse.json(
         { error: 'Name, email and password are required' },
         { status: 400 }
@@ -17,13 +20,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const { data: existingUser } = await supabase
+    console.log('Checking if user exists with email:', email);
+    const { data: existingUser, error: checkError } = await supabase
       .from('User')
       .select('*')
       .eq('email', email)
       .single();
 
+    console.log('User check result:', { existingUser: !!existingUser, checkError });
+
     if (existingUser) {
+      console.log('User already exists');
       return NextResponse.json(
         { error: 'User with this email already exists' },
         { status: 400 }
@@ -31,24 +38,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
+    console.log('Hashing password');
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Password hashed successfully');
 
     // Create user
+    const userId = createId();
+    const userData = {
+      id: userId,
+      name,
+      email,
+      password: hashedPassword,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      rating: 0,
+      reviewCount: 0,
+      isBanned: false,
+    };
+    console.log('Creating user with data:', { ...userData, password: '[HIDDEN]' });
+    
     const { data: user, error } = await supabase
       .from('User')
-      .insert({
-        id: createId(),
-        name,
-        email,
-        password: hashedPassword,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        rating: 0,
-        reviewCount: 0,
-        isBanned: false,
-      })
+      .insert(userData)
       .select()
       .single();
+    
+    console.log('User creation result:', { user: !!user, error });
 
     if (error) {
       console.error('Supabase error:', error);
