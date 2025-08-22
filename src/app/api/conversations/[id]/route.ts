@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { checkBannedWords } from '../../banned-words/route';
+import { checkBannedWords } from '@/lib/banned-words';
 
 const prisma = new PrismaClient();
 

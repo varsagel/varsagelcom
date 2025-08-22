@@ -16,7 +16,7 @@ const Header = () => {
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
-  const { isConnected, unreadCount: streamUnreadCount } = useNotificationStream();
+  const { isConnected, unreadCount: streamUnreadCount } = useNotificationStream(isLoggedIn);
 
   // Tema değişikliği için hydration tamamlandığında
   useEffect(() => {

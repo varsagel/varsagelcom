@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getUserId } from '@/lib/auth';
-import { checkBannedWords } from '../../banned-words/route';
+import { checkBannedWords } from '@/lib/banned-words';
 import { sanitizeInput, validateUrl } from '@/lib/sanitize';
 
 const prisma = new PrismaClient();

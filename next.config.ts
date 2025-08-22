@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
 // Bundle analyzer
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
@@ -7,7 +8,6 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
   webpack: (config, { dev, isServer }) => {
     // Fix for 'self is not defined' error
     if (isServer) {
@@ -26,6 +26,43 @@ const nextConfig: NextConfig = {
            'typeof global': JSON.stringify('object'),
          })
        );
+
+      // Copy Prisma query engine for Vercel deployment
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /^@prisma\/client$/,
+          require.resolve('@prisma/client')
+        )
+      );
+      
+      // Copy Prisma binaries for Vercel
+      config.plugins.push(
+        new CopyPlugin({
+          patterns: [
+            {
+              from: 'node_modules/.prisma/client/libquery_engine-*',
+              to: '.next/server/',
+              noErrorOnMissing: true,
+            },
+            {
+              from: 'node_modules/@prisma/engines/libquery_engine-*',
+              to: '.next/server/',
+              noErrorOnMissing: true,
+            },
+            {
+              from: 'node_modules/.prisma/client/schema.prisma',
+              to: '.next/server/',
+              noErrorOnMissing: true,
+            },
+          ],
+        })
+      );
+      
+      // Ensure Prisma client is externalized for serverless
+      if (!dev) {
+        config.externals = config.externals || [];
+        config.externals.push('@prisma/client');
+      }
     }
     
     return config;

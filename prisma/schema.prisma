@@ -1,6 +1,5 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -10,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id              String        @id @default(uuid())
+  id              String        @id @default(cuid())
   email           String        @unique
   password        String
   name            String
@@ -37,7 +36,7 @@ model User {
 }
 
 model Listing {
-  id                   String         @id @default(uuid())
+  id                   String         @id @default(cuid())
   displayNumber        String         @unique
   title                String
   description          String
@@ -74,7 +73,7 @@ model Listing {
 }
 
 model Offer {
-  id                   String        @id @default(uuid())
+  id                   String        @id @default(cuid())
   displayNumber        String        @unique
   userId               String
   listingId            String
@@ -96,7 +95,7 @@ model Offer {
 }
 
 model Favorite {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   userId    String
   listingId String
@@ -107,7 +106,7 @@ model Favorite {
 }
 
 model Review {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   rating     Int
   comment    String
   createdAt  DateTime @default(now())
@@ -120,7 +119,7 @@ model Review {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   type      String
   title     String?
   message   String
@@ -132,7 +131,7 @@ model Notification {
 }
 
 model Conversation {
-  id        String    @id @default(uuid())
+  id        String    @id @default(cuid())
   offerId   String    @unique
   listingId String?
   createdAt DateTime  @default(now())
@@ -143,7 +142,7 @@ model Conversation {
 }
 
 model Message {
-  id             String       @id @default(uuid())
+  id             String       @id @default(cuid())
   content        String
   senderId       String
   conversationId String
@@ -154,7 +153,7 @@ model Message {
 }
 
 model Question {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
   createdAt DateTime @default(now())
   listingId String
@@ -165,7 +164,7 @@ model Question {
 }
 
 model Answer {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   content     String
   createdAt   DateTime @default(now())
   questionId  String   @unique
@@ -175,7 +174,7 @@ model Answer {
 }
 
 model ListingView {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   ipAddress String?
   userId    String?
@@ -187,7 +186,7 @@ model ListingView {
 }
 
 model Report {
-  id             String    @id @default(uuid())
+  id             String    @id @default(cuid())
   targetType     String
   targetId       String
   reason         String
@@ -203,7 +202,7 @@ model Report {
 }
 
 model AdminLog {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   action     String
   targetType String
   targetId   String

@@ -5,10 +5,11 @@ import { getUserId } from '@/lib/auth';
 const prisma = new PrismaClient();
 
 // İlanı tekrar aktif et (kabul edilen teklifi reddet)
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     const userId = getUserId(request.headers);
-    const listingId = params.id;
+    const listingId = id;
 
     // İlanın kullanıcıya ait olduğunu kontrol et
     const listing = await prisma.listing.findFirst({

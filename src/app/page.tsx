@@ -414,7 +414,7 @@ export default function Home() {
           {/* Main Categories - Simple Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
             {categories.filter(cat => cat.id !== 'all').map((category) => {
-              const categoryIcons = {
+              const categoryIcons: { [key: string]: string } = {
                 'emlak': '🏠',
                 'vasita': '🚗',
                 'yedek-parca': '🔧',
@@ -427,7 +427,7 @@ export default function Home() {
                 'hayvanlar-alemi': '🐾'
               };
               
-              const categoryColors = {
+              const categoryColors: { [key: string]: string } = {
                 'emlak': 'from-blue-500 to-blue-600',
                 'vasita': 'from-red-500 to-red-600',
                 'yedek-parca': 'from-orange-500 to-orange-600',

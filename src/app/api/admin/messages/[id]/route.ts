@@ -99,11 +99,26 @@ export async function GET(
                 category: true
               }
             },
-            participants: {
-              select: {
-                id: true,
-                name: true,
-                email: true
+            offer: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true
+                  }
+                },
+                listing: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }

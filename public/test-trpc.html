@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>tRPC Test</title>
+</head>
+<body>
+    <h1>tRPC Register Test</h1>
+    <button onclick="testRegister()">Test Register</button>
+    <div id="result"></div>
+
+    <script>
+        async function testRegister() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // tRPC batch format: input as query parameter AND body for POST
+                const input = encodeURIComponent(JSON.stringify({
+                    "0": {
+                        "email": "test@example.com",
+                        "password": "Test123!",
+                        "name": "Test User"
+                    }
+                }));
+                
+                const response = await fetch(`/api/trpc/auth.testRegister?batch=1&input=${input}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        "0": {
+                            "email": "test@example.com",
+                            "password": "Test123!",
+                            "name": "Test User"
+                        }
+                    })
+                });
+                
+                const data = await response.text();
+                resultDiv.innerHTML = `<h3>Response:</h3><pre>${data}</pre>`;
+                
+                if (!response.ok) {
+                    console.error('Response not OK:', response.status, data);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>Error:</h3><pre>${error.message}</pre>`;
+                console.error('Fetch error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

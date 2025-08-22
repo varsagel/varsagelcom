@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcrypt';
 import { SignJWT } from 'jose';
 import { sanitizeInput, validateEmail } from '@/lib/sanitize';
-
-const prisma = new PrismaClient();
 
 // Rate limiting için basit in-memory store
 const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
@@ -75,9 +73,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('Supabase error:', userError);
+      return NextResponse.json(
+        { error: 'An error occurred during login' },
+        { status: 500 }
+      );
+    }
 
     if (!user) {
       return NextResponse.json(

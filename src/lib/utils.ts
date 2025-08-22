@@ -90,3 +90,11 @@ export function generatePagination(currentPage: number, totalPages: number) {
     totalPages,
   ]
 }
+
+export function formatCity(city: string) {
+  return city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+}
+
+export function formatDistrict(district: string) {
+  return district.charAt(0).toUpperCase() + district.slice(1).toLowerCase();
+}

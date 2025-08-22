@@ -11,8 +11,9 @@ const ADMIN_EMAILS = [
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Token'dan kullanıcı ID'sini al
     const userId = await getUserIdFromToken(request.headers);
@@ -30,7 +31,7 @@ export async function GET(
       );
     }
 
-    const offerId = params.id;
+    const offerId = id;
 
     // Teklif detaylarını getir
     const offer = await prisma.offer.findUnique({
@@ -104,8 +105,9 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Token'dan kullanıcı ID'sini al
     const userId = await getUserIdFromToken(request.headers);
@@ -124,7 +126,7 @@ export async function PATCH(
     }
 
     const { action } = await request.json();
-    const offerId = params.id;
+    const offerId = id;
 
     // Hedef teklifin var olup olmadığını kontrol et
     const targetOffer = await prisma.offer.findUnique({
@@ -252,8 +254,7 @@ export async function PATCH(
           listingTitle: targetOffer.listing.title,
           previousStatus: targetOffer.status,
           newStatus: updatedOffer.status
-        },
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+        }
       }
     });
 
@@ -273,8 +274,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Token'dan kullanıcı ID'sini al
     const userId = await getUserIdFromToken(request.headers);
@@ -292,7 +294,7 @@ export async function DELETE(
       );
     }
 
-    const offerId = params.id;
+    const offerId = id;
 
     // Hedef teklifin var olup olmadığını kontrol et
     const targetOffer = await prisma.offer.findUnique({
@@ -334,8 +336,7 @@ export async function DELETE(
           offerUser: targetOffer.user.name,
           listingTitle: targetOffer.listing.title,
           deletedStatus: targetOffer.status
-        },
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+        }
       }
     });
 

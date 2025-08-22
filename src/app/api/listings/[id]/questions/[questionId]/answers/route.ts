@@ -5,7 +5,8 @@ import jwt from 'jsonwebtoken';
 const prisma = new PrismaClient();
 
 // Cevap ekle
-export async function POST(request: NextRequest, { params }: { params: { id: string, questionId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string, questionId: string }> }) {
+  const { id, questionId } = await params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -15,8 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     const userId = decoded.userId;
-    const listingId = params.id;
-    const questionId = params.questionId;
+    const listingId = id;
 
     const body = await request.json();
     const { content } = body;

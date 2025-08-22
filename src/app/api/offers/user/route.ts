@@ -49,8 +49,6 @@ export async function GET(request: NextRequest) {
       listingId: offer.listingId,
       listingTitle: offer.listing.title,
       price: offer.price,
-      description: offer.description,
-      deliveryTime: offer.deliveryTime,
       status: offer.status,
       createdAt: offer.createdAt.toISOString()
     }));

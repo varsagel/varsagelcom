@@ -11,8 +11,9 @@ const ADMIN_EMAILS = [
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Token'dan kullanıcı ID'sini al
     const userId = await getUserIdFromToken(request.headers);
@@ -31,7 +32,7 @@ export async function PATCH(
     }
 
     const { action } = await request.json();
-    const targetUserId = params.id;
+    const targetUserId = id;
 
     // Hedef kullanıcının var olup olmadığını kontrol et
     const targetUser = await prisma.user.findUnique({
@@ -93,8 +94,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Token'dan kullanıcı ID'sini al
     const userId = await getUserIdFromToken(request.headers);
@@ -112,7 +114,7 @@ export async function DELETE(
       );
     }
 
-    const targetUserId = params.id;
+    const targetUserId = id;
 
     // Hedef kullanıcının var olup olmadığını kontrol et
     const targetUser = await prisma.user.findUnique({
@@ -166,14 +168,21 @@ export async function DELETE(
         where: { senderId: targetUserId }
       });
       
-      await tx.conversation.deleteMany({
-        where: {
-          OR: [
-            { buyerId: targetUserId },
-            { sellerId: targetUserId }
-          ]
-        }
+      // Delete conversations where user is involved through offers
+      const userOffers = await tx.offer.findMany({
+        where: { userId: targetUserId },
+        select: { id: true }
       });
+      
+      if (userOffers.length > 0) {
+        await tx.conversation.deleteMany({
+          where: {
+            offerId: {
+              in: userOffers.map(offer => offer.id)
+            }
+          }
+        });
+      }
       
       await tx.notification.deleteMany({
         where: { userId: targetUserId }
@@ -208,8 +217,9 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Token'dan kullanıcı ID'sini al
     const userId = await getUserIdFromToken(request.headers);
@@ -227,7 +237,7 @@ export async function GET(
       );
     }
 
-    const targetUserId = params.id;
+    const targetUserId = id;
 
     // Kullanıcı detaylarını getir
     const targetUser = await prisma.user.findUnique({
@@ -238,8 +248,7 @@ export async function GET(
             listings: true,
             offers: true,
             reviews: true,
-            favorites: true,
-            conversations: true
+            favorites: true
           }
         },
         listings: {

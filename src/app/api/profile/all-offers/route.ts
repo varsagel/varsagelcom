@@ -26,6 +26,15 @@ export async function GET(request: NextRequest) {
     let whereCondition: any = {};
     let includeCondition: any = {};
 
+    // TypeScript tip hatalarını önlemek için include yapısını önceden tanımla
+    const baseInclude = {
+      conversation: {
+        select: {
+          id: true
+        }
+      }
+    };
+
     if (type === 'sent') {
       // Kullanıcının verdiği teklifler
       whereCondition = {
@@ -33,6 +42,7 @@ export async function GET(request: NextRequest) {
       };
       
       includeCondition = {
+        ...baseInclude,
         listing: {
           select: {
             id: true,
@@ -49,11 +59,6 @@ export async function GET(request: NextRequest) {
               }
             }
           }
-        },
-        conversation: {
-          select: {
-            id: true
-          }
         }
       };
     } else {
@@ -65,6 +70,7 @@ export async function GET(request: NextRequest) {
       };
       
       includeCondition = {
+        ...baseInclude,
         user: {
           select: {
             id: true,
@@ -80,11 +86,6 @@ export async function GET(request: NextRequest) {
             budgetMin: true,
             budgetMax: true,
             status: true
-          }
-        },
-        conversation: {
-          select: {
-            id: true
           }
         }
       };
@@ -112,17 +113,17 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(totalOffers / limit);
 
     // Veriyi formatla
-    const formattedOffers = offers.map(offer => {
+    const formattedOffers = offers.map((offer: any) => {
       if (type === 'sent') {
         return {
           id: offer.id,
           listingId: offer.listingId,
-          listingTitle: offer.listing.title,
-          listingDescription: offer.listing.description,
-          listingBudgetMin: offer.listing.budgetMin,
-          listingBudgetMax: offer.listing.budgetMax,
-          listingStatus: offer.listing.status,
-          listingOwner: offer.listing.user,
+          listingTitle: offer.listing?.title,
+          listingDescription: offer.listing?.description,
+          listingBudgetMin: offer.listing?.budgetMin,
+          listingBudgetMax: offer.listing?.budgetMax,
+          listingStatus: offer.listing?.status,
+          listingOwner: offer.listing?.user,
           price: offer.price,
           duration: offer.duration,
           message: offer.message,
@@ -136,11 +137,11 @@ export async function GET(request: NextRequest) {
         return {
           id: offer.id,
           listingId: offer.listingId,
-          listingTitle: offer.listing.title,
-          listingDescription: offer.listing.description,
-          listingBudgetMin: offer.listing.budgetMin,
-          listingBudgetMax: offer.listing.budgetMax,
-          listingStatus: offer.listing.status,
+          listingTitle: offer.listing?.title,
+          listingDescription: offer.listing?.description,
+          listingBudgetMin: offer.listing?.budgetMin,
+          listingBudgetMax: offer.listing?.budgetMax,
+          listingStatus: offer.listing?.status,
           offerUser: offer.user,
           price: offer.price,
           duration: offer.duration,

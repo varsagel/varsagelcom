@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
                   type: 'MODERATION_UPDATE',
                   title: 'Rapor Güncellendi',
                   message: `Raporunuz ${action === 'approve' ? 'onaylandı' : 'çözüldü'} ve gerekli işlemler yapıldı.`,
-                  data: {
+                  metadata: {
                     reportId: report.id,
                     action
                   }

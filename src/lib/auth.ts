@@ -1,10 +1,8 @@
-import { jwtVerify } from 'jose';
+import { jwtVerify, JWTPayload } from 'jose';
 
-interface JwtPayload {
+interface JwtPayload extends JWTPayload {
   userId: string;
   email: string;
-  iat: number;
-  exp: number;
 }
 
 /**
@@ -24,8 +22,8 @@ export async function verifyAuth(token: string): Promise<JwtPayload> {
 
     console.log('Token verified successfully:', payload.userId);
     return payload as JwtPayload;
-  } catch (error) {
-    console.log('Token verification error details:', error);
+  } catch (err) {
+    console.log('Token verification error details:', err);
     throw new Error('Invalid token');
   }
 }
@@ -66,7 +64,7 @@ export async function getUserIdFromToken(headersOrToken: Headers | string): Prom
   try {
     const payload = await verifyAuth(token);
     return payload.userId;
-  } catch (error) {
+  } catch (err) {
     throw new Error('Invalid or expired token');
   }
 }

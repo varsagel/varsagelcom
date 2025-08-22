@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching user listings:', error);
     
-    if (error.name === 'JWTExpired' || error.name === 'JWTInvalid') {
+    if (error instanceof Error && (error.name === 'JWTExpired' || error.name === 'JWTInvalid')) {
       return NextResponse.json(
         { error: 'Geçersiz token' },
         { status: 401 }

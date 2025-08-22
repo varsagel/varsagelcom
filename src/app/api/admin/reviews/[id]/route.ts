@@ -11,8 +11,9 @@ const ADMIN_EMAILS = [
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const userId = await getUserIdFromToken(request.headers);
     if (!userId) {
@@ -30,23 +31,21 @@ export async function GET(
     }
 
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         reviewer: {
           select: {
             id: true,
             name: true,
             email: true,
-            avatar: true,
             createdAt: true
           }
         },
-        reviewee: {
+        user: {
           select: {
             id: true,
             name: true,
             email: true,
-            avatar: true,
             createdAt: true
           }
         },
@@ -79,8 +78,9 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const userId = await getUserIdFromToken(request.headers);
     if (!userId) {
@@ -104,10 +104,10 @@ export async function PATCH(
     }
 
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         reviewer: true,
-        reviewee: true
+        user: true
       }
     });
 
@@ -121,31 +121,55 @@ export async function PATCH(
 
     if (action === 'delete') {
       await prisma.review.delete({
-        where: { id: params.id }
+        where: { id }
       });
       logAction = 'REVIEW_DELETED';
       notificationMessage = 'Değerlendirmeniz sistem yöneticisi tarafından silindi.';
     } else if (action === 'approve') {
-      updatedReview = await prisma.review.update({
-        where: { id: params.id },
-        data: {
-          isApproved: true,
-          isReported: false
-        }
-      });
+      // Review approved - no database changes needed
+      updatedReview = review;
       logAction = 'REVIEW_APPROVED';
       notificationMessage = 'Değerlendirmeniz onaylandı ve yayınlandı.';
     } else if (action === 'reject') {
-      updatedReview = await prisma.review.update({
-        where: { id: params.id },
-        data: {
-          isApproved: false,
-          isReported: false
-        }
-      });
+      // Review rejected - no database changes needed
+      updatedReview = review;
       logAction = 'REVIEW_REJECTED';
       notificationMessage = 'Değerlendirmeniz reddedildi.';
+    } else {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
+
+    // Skip the rest of the update logic for approve/reject
+    if (action === 'approve' || action === 'reject') {
+      // Create admin log
+      await prisma.adminLog.create({
+        data: {
+          action: logAction,
+          targetType: 'REVIEW',
+          targetId: id,
+          details: { action, reviewId: id },
+          adminId: userId
+        }
+      });
+
+      // Send notification
+      await prisma.notification.create({
+        data: {
+          userId: review.reviewerId,
+          type: 'review_status',
+          message: notificationMessage,
+          metadata: { reviewId: id, action }
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        review: updatedReview,
+        message: `Review ${action}d successfully`
+      });
+    }
+
+
 
     // Create admin log
     await prisma.adminLog.create({
@@ -153,11 +177,11 @@ export async function PATCH(
         adminId: userId,
         action: logAction,
         targetType: 'REVIEW',
-        targetId: params.id,
+        targetId: id,
         details: {
-          reviewId: params.id,
+          reviewId: id,
           reviewerId: review.reviewerId,
-          revieweeId: review.revieweeId,
+          userId: review.userId,
           action,
           adminName: user.name
         }
@@ -172,10 +196,10 @@ export async function PATCH(
           type: 'REVIEW_STATUS',
           title: 'Değerlendirme Durumu',
           message: notificationMessage,
-          data: {
-            reviewId: params.id,
+          metadata: {
+            reviewId: id,
             action,
-            revieweeId: review.revieweeId
+            userId: review.userId
           }
         }
       });
@@ -198,8 +222,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const userId = await getUserIdFromToken(request.headers);
     if (!userId) {
@@ -216,11 +241,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const { id } = await params;
+    
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         reviewer: true,
-        reviewee: true
+        user: true
       }
     });
 
@@ -230,7 +257,7 @@ export async function DELETE(
 
     // Delete the review
     await prisma.review.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     // Create admin log
@@ -239,11 +266,11 @@ export async function DELETE(
         adminId: userId,
         action: 'REVIEW_DELETED',
         targetType: 'REVIEW',
-        targetId: params.id,
+        targetId: id,
         details: {
-          reviewId: params.id,
+          reviewId: id,
           reviewerId: review.reviewerId,
-          revieweeId: review.revieweeId,
+          userId: review.userId,
           adminName: user.name,
           deletedAt: new Date().toISOString()
         }

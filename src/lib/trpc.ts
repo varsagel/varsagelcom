@@ -2,6 +2,8 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { ZodError } from 'zod';
+import { prisma } from './prisma';
 
 interface Session {
   user: {
@@ -11,8 +13,6 @@ interface Session {
   };
   expires: string;
 }
-
-const prisma = new PrismaClient();
 
 /**
  * 1. CONTEXT
@@ -66,22 +66,28 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
         process.env.JWT_SECRET || 'fallback-secret'
       ) as { userId: string; email: string };
       
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-      });
-      
-      if (user) {
-        session = {
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-          },
-          expires: '',
-        };
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+        });
+        
+        if (user) {
+          session = {
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+            },
+            expires: '',
+          };
+        }
+      } catch (dbError) {
+        console.error('Database error in createTRPCContext:', dbError);
+        // Continue without session if database fails
       }
-    } catch (error) {
+    } catch (err) {
       // Invalid token, session remains null
+      console.error('JWT verification error:', err);
     }
   }
 
@@ -106,7 +112,7 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       data: {
         ...shape.data,
         zodError:
-          error.cause instanceof Error && error.cause.name === 'ZodError'
+          error.cause instanceof ZodError
             ? error.cause.flatten()
             : null,
       },

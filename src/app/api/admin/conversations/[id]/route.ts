@@ -107,12 +107,28 @@ export async function GET(
             images: true
           }
         },
-        participants: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            createdAt: true
+        offer: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                createdAt: true
+              }
+            },
+            listing: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    createdAt: true
+                  }
+                }
+              }
+            }
           }
         },
         messages: {

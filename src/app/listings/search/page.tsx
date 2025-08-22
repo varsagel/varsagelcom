@@ -116,7 +116,7 @@ const carModels = {
   'volvo': ['XC40', 'XC60', 'XC90', 'S60', 'S90', 'V60', 'V90', 'C40', 'EX30', 'EX90']
 };
 
-const subcategories = {
+const subcategories: { [key: string]: string[] } = {
   'emlak': ['Konut', 'İş Yeri', 'Arsa', 'Devremülk', 'Turistik Tesis'],
   'vasita': ['Otomobil', 'Arazi, SUV & Pickup', 'Motosiklet', 'Minivan & Panelvan', 'Ticari Araçlar', 'Kiralık Araçlar', 'Deniz Araçları', 'Hasarlı Araçlar', 'Klasik Araçlar', 'Elektrikli Araçlar'],
   'ikinci-el-ve-sifir-alisveris': ['Bilgisayar', 'Ev Dekorasyon', 'Giyim & Aksesuar', 'Kişisel Bakım & Kozmetik', 'Kitap, Dergi & Film', 'Takı, Mücevher & Altın', 'Bahçe & Yapı Market', 'Yiyecek & İçecek', 'Cep Telefonu & Aksesuar', 'Ev Elektroniği', 'Elektronik', 'Saat', 'Hobi & Oyuncak'],
@@ -130,7 +130,7 @@ const subcategories = {
 };
 
 // İkinci el kategorisi için marka ve model verileri
-const secondHandBrands = {
+const secondHandBrands: { [key: string]: { [key: string]: string[] } } = {
   'Cep Telefonu & Aksesuar': {
     'Apple': ['iPhone 15 Pro Max', 'iPhone 15 Pro', 'iPhone 15 Plus', 'iPhone 15', 'iPhone 14 Pro Max', 'iPhone 14 Pro', 'iPhone 14 Plus', 'iPhone 14', 'iPhone 13 Pro Max', 'iPhone 13 Pro', 'iPhone 13', 'iPhone 12 Pro Max', 'iPhone 12 Pro', 'iPhone 12', 'iPhone 11 Pro Max', 'iPhone 11 Pro', 'iPhone 11', 'iPhone XS Max', 'iPhone XS', 'iPhone XR', 'iPhone X', 'iPhone 8 Plus', 'iPhone 8', 'iPhone 7 Plus', 'iPhone 7', 'iPhone SE'],
     'Samsung': ['Galaxy S24 Ultra', 'Galaxy S24+', 'Galaxy S24', 'Galaxy S23 Ultra', 'Galaxy S23+', 'Galaxy S23', 'Galaxy S22 Ultra', 'Galaxy S22+', 'Galaxy S22', 'Galaxy S21 Ultra', 'Galaxy S21+', 'Galaxy S21', 'Galaxy Note 20 Ultra', 'Galaxy Note 20', 'Galaxy A54', 'Galaxy A34', 'Galaxy A24', 'Galaxy A14', 'Galaxy Z Fold 5', 'Galaxy Z Flip 5', 'Galaxy Z Fold 4', 'Galaxy Z Flip 4'],
@@ -1124,8 +1124,8 @@ function SearchListingsPage() {
       if (filters.query) params.set('q', filters.query);
       if (filters.category) params.set('category', filters.category);
       if (filters.location) params.set('location', filters.location);
-      if (filters.priceMin > 0) params.set('minBudget', filters.priceMin.toString());
-      if (filters.priceMax < 1000000) params.set('maxBudget', filters.priceMax.toString());
+      if (filters.priceMin && filters.priceMin > 0) params.set('minBudget', filters.priceMin.toString());
+      if (filters.priceMax && filters.priceMax < 1000000) params.set('maxBudget', filters.priceMax.toString());
       params.set('sortBy', sortBy === 'newest' ? 'createdAt' : sortBy === 'price-low' ? 'budgetMin' : sortBy === 'price-high' ? 'budgetMax' : 'createdAt');
       params.set('sortOrder', sortBy === 'price-high' ? 'desc' : sortBy === 'oldest' ? 'asc' : 'desc');
       params.set('page', currentPage.toString());
@@ -1602,10 +1602,10 @@ function SearchListingsPage() {
                 {/* Dynamic Category Specific Filters */}
                 {filters.category && (
                   <DynamicFilters
-                    category={filters.category}
-                    subcategory={filters.subcategory}
+                    categoryId={filters.category}
                     filters={filters}
                     onFilterChange={handleFilterChange}
+                    onClearFilters={() => {}}
                   />
                 )}
 

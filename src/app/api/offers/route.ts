@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromToken } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
 import { jwtVerify } from 'jose';
-import { checkBannedWords } from '../banned-words/route';
+import { checkBannedWords } from '@/lib/banned-words';
 
 const prisma = new PrismaClient();
 

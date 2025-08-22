@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     
     if (category) {
       // Genel kategori kontrolü - eğer kategori genel bir kategori ise alt kategorileri de dahil et
-      const generalCategories = {
+      const generalCategories: { [key: string]: string[] } = {
         'Emlak': ['Konut', 'İş Yeri', 'Arsa', 'Bina', 'Devre Mülk', 'Diğer'],
         'Vasıta': ['Otomobil', 'Arazi, SUV & Pickup', 'Motosiklet', 'Minivan & Panelvan', 'Kamyon & Kamyonet', 'Otobüs & Midibüs', 'Tarım Makineleri', 'İş Makineleri', 'Deniz Araçları', 'Hava Araçları', 'ATV', 'UTV', 'Karavan', 'Treyler', 'Elektrikli Araçlar', 'Hasarlı Araçlar', 'Klasik Araçlar', 'Modifiye Araçlar', 'Diğer'],
         'Yedek Parça, Aksesuar, Donanım & Tuning': ['Otomotiv Ekipmanları', 'Motosiklet Ekipmanları', 'Deniz Aracı Ekipmanları', 'Hava Aracı Ekipmanları', 'ATV Ekipmanları', 'Karavan Ekipmanları', 'Diğer'],

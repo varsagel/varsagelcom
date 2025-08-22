@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
       completedOffers.forEach(offer => {
         const date = new Date(offer.createdAt);
         const key = date.toDateString();
-        const commission = offer.amount * commissionRate;
+        const commission = offer.price * commissionRate;
         grouped.set(key, (grouped.get(key) || 0) + commission);
       });
       

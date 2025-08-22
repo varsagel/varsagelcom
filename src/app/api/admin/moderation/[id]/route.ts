@@ -262,7 +262,7 @@ export async function PATCH(
           type: 'MODERATION_UPDATE',
           title: 'Rapor Güncellendi',
           message: `Raporunuz ${action === 'approve' ? 'onaylandı' : 'çözüldü'} ve gerekli işlemler yapıldı.`,
-          data: {
+          metadata: {
             reportId: reportId,
             action
           }

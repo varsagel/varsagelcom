@@ -99,8 +99,7 @@ export async function POST(request: NextRequest) {
               listingTitle: offer.listing.title,
               deletedStatus: offer.status,
               bulkOperation: true
-            },
-            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+            }
           }
         });
       }
@@ -194,8 +193,7 @@ export async function POST(request: NextRequest) {
               previousStatus: offer.status,
               newStatus: newStatus,
               bulkOperation: true
-            },
-            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+            }
           }
         });
 

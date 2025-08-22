@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface Notification {
@@ -17,11 +17,12 @@ interface NotificationStreamData {
   count?: number;
 }
 
-export function useNotificationStream() {
+export function useNotificationStream(isLoggedIn: boolean = false) {
   const [isConnected, setIsConnected] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
   const { toast } = useToast();
+  const connectRef = useRef<() => void>(() => {});
 
   const getNotificationTitle = useCallback((type: string) => {
     switch (type) {
@@ -45,16 +46,24 @@ export function useNotificationStream() {
   }, []);
 
   const connect = useCallback(() => {
+    // Kullanıcı giriş yapmamışsa bağlantı kurma
+    if (!isLoggedIn) {
+      return;
+    }
+    
     const token = localStorage.getItem('token');
     if (!token) {
-      console.warn('Token bulunamadı, SSE bağlantısı kurulamıyor');
+      // Token yoksa sessizce çık, hata mesajı verme
       return;
     }
 
     // Mevcut bağlantıyı kapat
-    if (eventSource) {
-      eventSource.close();
-    }
+    setEventSource(prevEventSource => {
+      if (prevEventSource) {
+        prevEventSource.close();
+      }
+      return null;
+    });
 
     try {
       // EventSource Authorization header desteklemediği için token'ı query parameter olarak gönderiyoruz
@@ -122,7 +131,9 @@ export function useNotificationStream() {
           if (currentToken && currentToken === token) {
             // Aynı token ile 5 saniye sonra yeniden bağlan
             setTimeout(() => {
-              connect();
+              if (connectRef.current) {
+                connectRef.current();
+              }
             }, 5000);
           } else {
             console.warn('Token değişti veya silindi, SSE yeniden bağlantısı iptal edildi');
@@ -136,26 +147,36 @@ export function useNotificationStream() {
       console.error('SSE bağlantısı kurulamadı:', error);
       setIsConnected(false);
     }
-  }, [eventSource, toast, getNotificationTitle]);
+  }, [toast, getNotificationTitle, isLoggedIn]);
+
+  // connectRef'i güncel tut
+  connectRef.current = connect;
 
   const disconnect = useCallback(() => {
-    if (eventSource) {
-      eventSource.close();
-      setEventSource(null);
-      setIsConnected(false);
-      console.log('SSE bağlantısı kapatıldı');
-    }
-  }, [eventSource]);
+    setEventSource(prevEventSource => {
+      if (prevEventSource) {
+        prevEventSource.close();
+        setIsConnected(false);
+        console.log('SSE bağlantısı kapatıldı');
+      }
+      return null;
+    });
+  }, []);
 
   useEffect(() => {
-    // Component mount olduğunda bağlan
-    connect();
+    // Sadece kullanıcı giriş yapmışken bağlan
+    if (isLoggedIn) {
+      connect();
+    } else {
+      // Kullanıcı çıkış yaptıysa bağlantıyı kapat
+      disconnect();
+    }
 
     // Component unmount olduğunda bağlantıyı kapat
     return () => {
       disconnect();
     };
-  }, []);
+  }, [isLoggedIn]);
 
   return {
     isConnected,

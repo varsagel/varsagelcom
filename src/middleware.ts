@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuth } from './lib/auth'
+import { rateLimit } from './lib/rate-limit'
+import { logSecurityEvent } from './lib/security-logger'
 
 const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
@@ -19,8 +21,8 @@ async function validateCSRF(request: NextRequest): Promise<boolean> {
     return false
   }
 
-  // Token cache kontrolü
-  const cacheKey = `csrf_${token}`
+  // Cache key for potential future use
+  // const cacheKey = `csrf_${token}`
   
   try {
     // Basit token validasyonu (gerçek uygulamada daha güvenli olmalı)
@@ -105,7 +107,7 @@ export async function middleware(request: NextRequest) {
             headers: requestHeaders,
           },
         });
-      } catch (error) {
+      } catch (err) {
         // Token verification failed
         return NextResponse.json(
           { error: 'Invalid or expired token' },

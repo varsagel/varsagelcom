@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '../../../../generated/prisma';
+import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
+import { createId } from '@paralleldrive/cuid2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,9 +17,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const { data: existingUser } = await supabase
+      .from('User')
+      .select('*')
+      .eq('email', email)
+      .single();
 
     if (existingUser) {
       return NextResponse.json(
@@ -33,13 +34,29 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
+    const { data: user, error } = await supabase
+      .from('User')
+      .insert({
+        id: createId(),
         name,
         email,
         password: hashedPassword,
-      },
-    });
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        rating: 0,
+        reviewCount: 0,
+        isBanned: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Failed to create user' },
+        { status: 500 }
+      );
+    }
 
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;

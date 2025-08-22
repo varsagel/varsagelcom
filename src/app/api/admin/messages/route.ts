@@ -75,11 +75,26 @@ export async function GET(request: NextRequest) {
                 title: true
               }
             },
-            participants: {
-              select: {
-                id: true,
-                name: true,
-                email: true
+            offer: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true
+                  }
+                },
+                listing: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }

@@ -250,7 +250,7 @@ export default function AdminListingsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {listing.price.toLocaleString('tr-TR')} TL
+                          {listing.price ? listing.price.toLocaleString('tr-TR') : '0'} TL
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -401,7 +401,7 @@ export default function AdminListingsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Fiyat</label>
-                    <p className="text-sm text-gray-900">{selectedListing.price.toLocaleString('tr-TR')} TL</p>
+                    <p className="text-sm text-gray-900">{selectedListing.price ? selectedListing.price.toLocaleString('tr-TR') : '0'} TL</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Konum</label>

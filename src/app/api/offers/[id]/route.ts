@@ -215,7 +215,8 @@ async function updateOffer(request: NextRequest, params: { params: Promise<{ id:
         listing: {
           select: {
             id: true,
-            title: true
+            title: true,
+            userId: true
           }
         }
       }
