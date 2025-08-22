@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { createTRPCRouter, publicProcedure, protectedProcedure } from '../../../lib/trpc';
 
 export const authRouter = createTRPCRouter({
-  testEnv: publicProcedure
+  checkEnv: publicProcedure
     .query(async () => {
       return {
         NODE_ENV: process.env.NODE_ENV,
