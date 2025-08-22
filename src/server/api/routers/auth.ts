@@ -24,7 +24,7 @@ export const authRouter = createTRPCRouter({
           .select('*', { count: 'exact', head: true });
         supabaseStatus = 'connected';
       } catch (error) {
-        supabaseStatus = `error: ${error.message}`;
+        supabaseStatus = `error: ${(error as Error).message || 'Unknown error'}`;
       }
 
       return {
@@ -33,9 +33,7 @@ export const authRouter = createTRPCRouter({
       };
     }),
 
-  login: publicProcedure.query(() => {
-    return { message: 'tRPC is working!' };
-  }),
+  
   
   testRegister: publicProcedure
     .input(z.object({
