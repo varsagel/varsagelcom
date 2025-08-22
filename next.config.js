@@ -1,16 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@prisma/client', 'prisma'],
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('@prisma/client')
-    }
-    return config
-  },
-  // Ensure Prisma binaries are included in the build
   output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  env: {
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+    JWT_SECRET: process.env.JWT_SECRET,
   },
 }
 

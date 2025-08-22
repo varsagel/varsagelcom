@@ -6,6 +6,13 @@ import { createId } from '@paralleldrive/cuid2';
 export async function POST(request: NextRequest) {
   try {
     console.log('Register endpoint called');
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      nodeEnv: process.env.NODE_ENV
+    });
+    
     const body = await request.json();
     const { name, email, password } = body;
     console.log('Request body parsed:', { name, email, hasPassword: !!password });
