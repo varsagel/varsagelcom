@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '../../../../generated/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { getUserId } from '@/lib/auth';
 import bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient();
 
 // Kullanıcı şifresini güncelle
 export async function PUT(request: NextRequest) {
@@ -24,16 +23,22 @@ export async function PUT(request: NextRequest) {
     }
     
     // Kullanıcıyı getir
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const supabase = createClient();
+
+    const { data: userData, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
     
-    if (!user) {
+    if (fetchError || !userData) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
+    
+    const user = userData;
     
     // Mevcut şifreyi doğrula
     const passwordMatch = await bcrypt.compare(currentPassword, user.password);
@@ -49,12 +54,14 @@ export async function PUT(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     
     // Kullanıcının şifresini güncelle
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        password: hashedPassword,
-      },
-    });
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ password: hashedPassword })
+      .eq('id', userId);
+    
+    if (updateError) {
+      throw updateError;
+    }
     
     return NextResponse.json({
       message: 'Password updated successfully',
