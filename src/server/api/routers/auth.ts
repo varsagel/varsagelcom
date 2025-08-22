@@ -130,6 +130,13 @@ export const authRouter = createTRPCRouter({
       name: z.string().min(1),
     }))
     .mutation(async ({ input, ctx }) => {
+      console.log('=== REGISTER MUTATION START ===');
+      console.log('Raw input type:', typeof input);
+      console.log('Raw input:', input);
+      console.log('Input keys:', Object.keys(input || {}));
+      console.log('Email type:', typeof input?.email, 'Value:', input?.email);
+      console.log('Password type:', typeof input?.password, 'Value:', input?.password ? '[REDACTED]' : input?.password);
+      console.log('Name type:', typeof input?.name, 'Value:', input?.name);
       console.log('Register input received:', JSON.stringify(input, null, 2));
       try {
         console.log('Register mutation started with input:', { email: input.email, name: input.name });
