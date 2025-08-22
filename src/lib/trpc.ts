@@ -69,7 +69,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
         const { data: user, error } = await supabase
         .from('User')
         .select('id, email, name')
-        .eq('id', session.user.id)
+        .eq('id', decoded.userId)
         .single();
         
         if (user && !error) {
