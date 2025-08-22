@@ -5,18 +5,6 @@ import jwt from 'jsonwebtoken';
 import { createTRPCRouter, publicProcedure, protectedProcedure } from '../../../lib/trpc';
 
 export const authRouter = createTRPCRouter({
-  checkEnv: publicProcedure
-    .query(async () => {
-      return {
-        NODE_ENV: process.env.NODE_ENV,
-        DATABASE_URL: process.env.DATABASE_URL ? '[SET]' : '[NOT SET]',
-        DIRECT_URL: process.env.DIRECT_URL ? '[SET]' : '[NOT SET]',
-        SUPABASE_URL: process.env.SUPABASE_URL ? '[SET]' : '[NOT SET]',
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '[SET]' : '[NOT SET]',
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? '[SET]' : '[NOT SET]',
-        JWT_SECRET: process.env.JWT_SECRET ? '[SET]' : '[NOT SET]',
-      };
-    }),
 
   login: publicProcedure.query(() => {
     return { message: 'tRPC is working!' };
@@ -144,6 +132,15 @@ export const authRouter = createTRPCRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       console.log('=== REGISTER MUTATION START ===');
+      console.log('Environment Variables Check:');
+      console.log('NODE_ENV:', process.env.NODE_ENV);
+      console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+      console.log('DIRECT_URL exists:', !!process.env.DIRECT_URL);
+      console.log('SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
+      console.log('SUPABASE_ANON_KEY exists:', !!process.env.SUPABASE_ANON_KEY);
+      console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+      console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+      console.log('Supabase client exists:', !!ctx.supabase);
       console.log('Raw input type:', typeof input);
       console.log('Raw input:', input);
       console.log('Input keys:', Object.keys(input || {}));
