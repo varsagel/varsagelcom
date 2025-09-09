@@ -1,0 +1,341 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Kullanıcı modeli - hem alıcı hem satıcı olabilir
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String?
+  phone     String?
+  avatar    String?
+  isActive  Boolean  @default(true)
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  accounts     Account[]
+  sessions     Session[]
+  listings     Listing[]     // Açtığı ilanlar
+  offers       Offer[]       // Verdiği teklifler
+  favorites    Favorite[]    // Favorilere aldığı ilanlar
+  messages     Message[]     // Gönderdiği mesajlar
+  notifications Notification[] // Aldığı bildirimler
+  conversations ConversationParticipant[]
+
+  @@map("users")
+}
+
+// NextAuth.js için gerekli modeller
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// Kategori modeli
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  parentId    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // İlişkiler
+  parent   Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  listings Listing[]
+  fields   CategoryField[]
+
+  @@map("categories")
+}
+
+// Kategori özel alanları (dinamik form için)
+model CategoryField {
+  id          String    @id @default(cuid())
+  categoryId  String
+  name        String    // Alan adı (örn: "marka", "model", "km")
+  label       String    // Görünen etiket
+  type        FieldType // Alan tipi
+  isRequired  Boolean   @default(false)
+  options     Json?     // Select, radio vb. için seçenekler
+  placeholder String?
+  validation  Json?     // Validasyon kuralları
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // İlişkiler
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  listingFieldValues ListingFieldValue[]
+  offerFieldValues   OfferFieldValue[]
+
+  @@map("category_fields")
+}
+
+// İlan modeli
+model Listing {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  categoryId  String
+  userId      String      // İlanı açan kullanıcı
+  city        String
+  district    String
+  minPrice    Float?
+  maxPrice    Float?
+  currency    String      @default("TRY")
+  status      ListingStatus @default(ACTIVE)
+  expiresAt   DateTime    // İlan bitiş tarihi (varsayılan 1 ay)
+  viewCount   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // İlişkiler
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category    @relation(fields: [categoryId], references: [id])
+  offers     Offer[]
+  favorites  Favorite[]
+  fieldValues ListingFieldValue[]
+  images     ListingImage[]
+
+  @@map("listings")
+}
+
+// İlan resim modeli
+model ListingImage {
+  id        String   @id @default(cuid())
+  listingId String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // İlişkiler
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("listing_images")
+}
+
+// İlan özel alan değerleri
+model ListingFieldValue {
+  id      String @id @default(cuid())
+  listingId String
+  fieldId String
+  value   String
+
+  // İlişkiler
+  listing Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  field   CategoryField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, fieldId])
+  @@map("listing_field_values")
+}
+
+// Teklif modeli
+model Offer {
+  id          String      @id @default(cuid())
+  listingId   String
+  userId      String      // Teklifi veren kullanıcı
+  price       Float
+  currency    String      @default("TRY")
+  message     String?
+  status      OfferStatus @default(PENDING)
+  rejectedAt  DateTime?
+  acceptedAt  DateTime?
+  canRetryAt  DateTime?   // Reddedildikten sonra tekrar teklif verebileceği zaman
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // İlişkiler
+  listing     Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fieldValues OfferFieldValue[]
+  conversation Conversation?
+
+  @@map("offers")
+}
+
+// Teklif özel alan değerleri
+model OfferFieldValue {
+  id      String @id @default(cuid())
+  offerId String
+  fieldId String
+  value   String
+
+  // İlişkiler
+  offer Offer         @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  field CategoryField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([offerId, fieldId])
+  @@map("offer_field_values")
+}
+
+// Favori modeli
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  // İlişkiler
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("favorites")
+}
+
+// Mesajlaşma sistemi
+model Conversation {
+  id        String   @id @default(cuid())
+  offerId   String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  offer        Offer                     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+  lastReadAt     DateTime @default(now())
+
+  // İlişkiler
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  content        String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  // İlişkiler
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// Bildirim sistemi
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?            // Ek veri (ilan id, teklif id vb.)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // İlişkiler
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Enum'lar
+enum FieldType {
+  TEXT
+  NUMBER
+  EMAIL
+  PHONE
+  SELECT
+  MULTISELECT
+  RADIO
+  CHECKBOX
+  TEXTAREA
+  DATE
+  BOOLEAN
+  FILE
+  URL
+}
+
+enum ListingStatus {
+  ACTIVE
+  EXPIRED
+  COMPLETED
+  CANCELLED
+  DRAFT
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationType {
+  NEW_OFFER
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  LISTING_EXPIRING
+  OFFER_EXPIRED
+  NEW_MESSAGE
+  SYSTEM
+}
