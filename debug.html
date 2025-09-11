@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailwind CSS Debug</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Tailwind CSS Debug Test
+            </h1>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Debug Adımları:</h2>
+                
+                <div class="space-y-4">
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <h3 class="font-semibold text-blue-900">1. Console'da CSS Kontrolü:</h3>
+                        <code class="text-sm bg-gray-100 p-2 rounded block mt-2">
+                            // Bu komutu console'a yazın:
+                            document.querySelector('link[href*="globals.css"]') || document.querySelector('style')
+                        </code>
+                    </div>
+                    
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <h3 class="font-semibold text-green-900">2. Tailwind Sınıfları Kontrolü:</h3>
+                        <code class="text-sm bg-gray-100 p-2 rounded block mt-2">
+                            // Bu komutu console'a yazın:
+                            getComputedStyle(document.body).backgroundColor
+                        </code>
+                    </div>
+                    
+                    <div class="p-4 bg-purple-50 rounded-lg">
+                        <h3 class="font-semibold text-purple-900">3. Element Stili Kontrolü:</h3>
+                        <code class="text-sm bg-gray-100 p-2 rounded block mt-2">
+                            // Ana div'in stilini kontrol edin:
+                            const mainDiv = document.querySelector('[class*="bg-gradient"]');
+                            console.log(getComputedStyle(mainDiv).background);
+                        </code>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-red-100 p-6 rounded-lg">
+                    <h3 class="text-red-800 font-semibold">Kırmızı Test</h3>
+                    <p class="text-red-600">Bu kırmızı görünüyor mu?</p>
+                </div>
+                
+                <div class="bg-blue-100 p-6 rounded-lg">
+                    <h3 class="text-blue-800 font-semibold">Mavi Test</h3>
+                    <p class="text-blue-600">Bu mavi görünüyor mu?</p>
+                </div>
+                
+                <div class="bg-green-100 p-6 rounded-lg">
+                    <h3 class="text-green-800 font-semibold">Yeşil Test</h3>
+                    <p class="text-green-600">Bu yeşil görünüyor mu?</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        console.log('=== TAILWIND CSS DEBUG ===');
+        console.log('1. CSS Dosyası:', document.querySelector('link[href*="globals.css"]'));
+        console.log('2. Body Background:', getComputedStyle(document.body).backgroundColor);
+        console.log('3. Gradient Div:', document.querySelector('[class*="bg-gradient"]'));
+        
+        // Tailwind sınıflarını test et
+        const testDiv = document.createElement('div');
+        testDiv.className = 'bg-red-500 text-white p-4';
+        testDiv.textContent = 'Tailwind Test';
+        document.body.appendChild(testDiv);
+        
+        setTimeout(() => {
+            console.log('4. Test Div Background:', getComputedStyle(testDiv).backgroundColor);
+            if (getComputedStyle(testDiv).backgroundColor === 'rgb(239, 68, 68)') {
+                console.log('✅ Tailwind CSS çalışıyor!');
+            } else {
+                console.log('❌ Tailwind CSS çalışmıyor!');
+            }
+        }, 100);
+    </script>
+</body>
+</html>

@@ -1,66 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
+import { createUser, getUserByEmail } from '@/lib/auth'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'İsim en az 2 karakter olmalıdır'),
+  firstName: z.string().min(1, 'Ad alanı zorunludur'),
+  lastName: z.string().min(1, 'Soyad alanı zorunludur'),
   email: z.string().email('Geçerli bir e-posta adresi giriniz'),
   password: z.string().min(6, 'Şifre en az 6 karakter olmalıdır'),
-  phone: z.string().optional()
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Şifreler eşleşmiyor',
+  path: ['confirmPassword'],
 })
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, password, phone } = registerSchema.parse(body)
-
-    // Kullanıcının zaten var olup olmadığını kontrol et
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    })
-
-    if (existingUser) {
+    
+    // Validate input
+    const validationResult = registerSchema.safeParse(body)
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Bu e-posta adresi zaten kullanılıyor' },
+        {
+          error: 'Validation failed',
+          details: validationResult.error.flatten().fieldErrors,
+        },
         { status: 400 }
       )
     }
 
-    // Şifreyi hashle
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const { firstName, lastName, email, password } = validationResult.data
 
-    // Kullanıcıyı oluştur
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        ...(hashedPassword && { password: hashedPassword }),
-        phone
-      }
+    // Check if user already exists
+    const existingUser = await getUserByEmail(email)
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Bu e-posta adresi ile zaten bir hesap mevcut' },
+        { status: 409 }
+      )
+    }
+
+    // Create user
+    const user = await createUser({
+      firstName,
+      lastName,
+      email,
+      password,
     })
 
-    // Şifreyi response'dan çıkar
-    const { password: userPassword, ...userWithoutPassword } = user as any
-
     return NextResponse.json(
-      { 
-        message: 'Kullanıcı başarıyla oluşturuldu',
-        user: userWithoutPassword 
+      {
+        message: 'Hesap başarıyla oluşturuldu',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
       },
       { status: 201 }
     )
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Geçersiz veri', details: error.issues },
-        { status: 400 }
-      )
-    }
-
-    console.error('Kayıt hatası:', error)
+    console.error('Register error:', error)
     return NextResponse.json(
-      { error: 'Sunucu hatası' },
+      { error: 'Kayıt sırasında bir hata oluştu' },
       { status: 500 }
     )
   }
