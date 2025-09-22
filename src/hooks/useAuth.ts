@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 
 export interface User {
   id: string
@@ -11,13 +12,18 @@ export interface User {
 }
 
 export function useAuth() {
+  const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const isLoading = status === 'loading'
   const router = useRouter()
 
   useEffect(() => {
-    checkAuthStatus()
-  }, [])
+    if (session?.user) {
+      checkAuthStatus()
+    } else {
+      setUser(null)
+    }
+  }, [session])
 
   const checkAuthStatus = async () => {
     try {
@@ -27,24 +33,19 @@ export function useAuth() {
 
       if (response.ok) {
         const userData = await response.json()
-        setUser(userData.user)
+        setUser(userData)
       } else {
         setUser(null)
       }
     } catch (error) {
       console.error('Auth check failed:', error)
       setUser(null)
-    } finally {
-      setIsLoading(false)
     }
   }
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      })
+      await signOut({ redirect: false })
       setUser(null)
       router.push('/')
     } catch (error) {

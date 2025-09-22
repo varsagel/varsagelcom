@@ -1,142 +1,252 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { existsSync } from 'fs';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-// İlan oluşturma API endpoint'i
+// 6 haneli ilan numarası oluştur
+async function generateListingNumber(): Promise<string> {
+  const lastListing = await prisma.listing.findFirst({
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  if (!lastListing) {
+    return '100000'; // İlk ilan numarası
+  }
+  
+  // Mevcut listingNumber'ı kontrol et ve geçerli bir sayı olup olmadığını kontrol et
+  const currentNumber = parseInt(lastListing.listingNumber);
+  
+  if (isNaN(currentNumber)) {
+    // Eğer mevcut listingNumber geçerli değilse, toplam ilan sayısına göre yeni numara oluştur
+    const totalListings = await prisma.listing.count();
+    return (100000 + totalListings).toString();
+  }
+  
+  const nextNumber = currentNumber + 1;
+  return nextNumber.toString();
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    // NextAuth session kontrolü
+    const session = await getServerSession(authOptions);
     
-    // Form verilerini al
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const price = parseFloat(formData.get('price') as string);
-    const location = formData.get('location') as string;
-    const categoryId = formData.get('categoryId') as string;
-    const subCategoryId = formData.get('subCategoryId') as string;
-    const categorySpecificData = JSON.parse(formData.get('categorySpecificData') as string || '{}');
-    
-    // Fotoğrafları işle
-    const images = formData.getAll('images') as File[];
-    const imageUrls: string[] = [];
-    
-    for (let i = 0; i < images.length; i++) {
-      const image = images[i];
-      if (image && image.size > 0) {
-        const bytes = await image.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        
-        // Dosya adını oluştur
-        const timestamp = Date.now();
-        const fileName = `${timestamp}-${i}-${image.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
-        const imagePath = join(process.cwd(), 'public', 'uploads', fileName);
-        
-        // Dosyayı kaydet
-        await writeFile(imagePath, buffer);
-        imageUrls.push(`/uploads/${fileName}`);
-      }
+    if (!session || !session.user?.email) {
+      return NextResponse.json(
+        { error: 'Giriş yapmanız gerekiyor' },
+        { status: 401 }
+      );
     }
+
+    // Kullanıcıyı veritabanından bul
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Kullanıcı bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    const contentType = request.headers.get('content-type');
     
-    // Veritabanına kaydet
-    const listing = await prisma.listing.create({
+    let title, description, minPrice, maxPrice, city, district, category, subcategory, categorySpecificData, images;
+    
+    if (contentType?.includes('application/json')) {
+      // JSON formatında veri
+      const body = await request.json();
+      title = body.title;
+      description = body.description;
+      minPrice = body.minPrice;
+      maxPrice = body.maxPrice;
+      city = body.city;
+      district = body.district;
+      category = body.category;
+      subcategory = body.subcategory;
+      categorySpecificData = body.categorySpecificData || {};
+      images = body.images || [];
+    } else {
+      // FormData formatında veri
+      const formData = await request.formData();
+      
+      title = formData.get('title') as string;
+      description = formData.get('description') as string;
+      minPrice = parseFloat(formData.get('minPrice') as string);
+      maxPrice = parseFloat(formData.get('maxPrice') as string);
+      city = formData.get('city') as string;
+      district = formData.get('district') as string;
+      category = formData.get('category') as string;
+      subcategory = formData.get('subcategory') as string;
+      const categorySpecificDataStr = formData.get('categorySpecificData') as string;
+      const dynamicFieldsStr = formData.get('dynamicFields') as string;
+      
+      // Kategori özel verilerini parse et
+      categorySpecificData = {};
+      if (categorySpecificDataStr) {
+        try {
+          categorySpecificData = JSON.parse(categorySpecificDataStr);
+        } catch (e) {
+          console.error('Kategori özel verileri parse edilemedi:', e);
+        }
+      } else if (dynamicFieldsStr) {
+        try {
+          categorySpecificData = JSON.parse(dynamicFieldsStr);
+        } catch (e) {
+          console.error('Dinamik alanlar parse edilemedi:', e);
+        }
+      }
+
+      // Resimleri işle
+      images = [];
+      const uploadDir = join(process.cwd(), 'public', 'uploads', 'listings');
+      
+      // Upload dizinini oluştur
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true });
+      }
+
+      // Resimleri kaydet
+      for (let i = 0; ; i++) {
+        const imageFile = formData.get(`image-${i}`) as File;
+        if (!imageFile) break;
+
+        const bytes = await imageFile.arrayBuffer();
+         const buffer = Buffer.from(bytes);
+      
+         // Dosya adını oluştur
+         const fileName = `${Date.now()}-${i}-${imageFile.name.split('.').pop()}`;
+         const filePath = join(uploadDir, fileName);
+         
+         // Dosyayı kaydet
+         await writeFile(filePath, buffer);
+         images.push(`/uploads/listings/${fileName}`);
+       }
+     }
+
+    // 6 haneli ilan numarası oluştur
+    const listingNumber = await generateListingNumber();
+    
+    // 1 ay sonrası için expiresAt tarihi
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    // Yeni ilan oluştur
+    const newListing = await prisma.listing.create({
       data: {
+        listingNumber,
         title,
         description,
-        price,
-        location,
-        categoryId,
-        subCategoryId,
-        categorySpecificData,
-        images: imageUrls,
-        userId: 1, // TODO: Gerçek kullanıcı ID'si kullan
+        minPrice,
+        maxPrice,
+        location: `${city}, ${district}`,
+        categoryId: category,
+        subCategoryId: subcategory,
+        categorySpecificData: JSON.stringify(categorySpecificData),
+        images: JSON.stringify(images),
+        expiresAt,
+        userId: user.id,
         status: 'active'
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        minPrice: true,
+        maxPrice: true,
+        status: true,
+        createdAt: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            createdAt: true
+          }
+        }
       }
     });
-    
-    return NextResponse.json({
-      success: true,
-      listing,
-      message: 'İlan başarıyla oluşturuldu'
-    }, { status: 201 });
-    
+
+    return NextResponse.json(newListing, { status: 201 });
   } catch (error) {
     console.error('İlan oluşturma hatası:', error);
-    return NextResponse.json({
-      success: false,
-      message: 'İlan oluşturulurken bir hata oluştu'
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: 'İlan oluşturulurken bir hata oluştu' },
+      { status: 500 }
+    );
   }
 }
 
-// İlanları listeleme API endpoint'i
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const limit = searchParams.get('limit');
     const categoryId = searchParams.get('categoryId');
     const subCategoryId = searchParams.get('subCategoryId');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search');
-    
-    const skip = (page - 1) * limit;
-    
-    // Filtreleme koşulları
-    const where: any = {
+
+    // Where koşullarını oluştur
+    const whereConditions: any = {
       status: 'active'
     };
-    
+
     if (categoryId) {
-      where.categoryId = categoryId;
+      whereConditions.categoryId = categoryId;
     }
-    
+
     if (subCategoryId) {
-      where.subCategoryId = subCategoryId;
+      whereConditions.subCategoryId = subCategoryId;
     }
-    
+
     if (search) {
-      where.OR = [
+      whereConditions.OR = [
         { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
+        { description: { contains: search, mode: 'insensitive' } },
+        { location: { contains: search, mode: 'insensitive' } }
       ];
     }
-    
-    // İlanları getir
-    const [listings, total] = await Promise.all([
-      prisma.listing.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              // Diğer kullanıcı bilgileri
-            }
+
+    const listings = await prisma.listing.findMany({
+      where: whereConditions,
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            createdAt: true
+          }
+        },
+        _count: {
+          select: {
+            offers: true,
+            favorites: true,
+            questions: true
           }
         }
-      }),
-      prisma.listing.count({ where })
-    ]);
-    
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: limit ? parseInt(limit) : undefined
+    });
+
     return NextResponse.json({
       success: true,
-      listings,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      listings: listings
     });
-    
   } catch (error) {
     console.error('İlanları getirme hatası:', error);
-    return NextResponse.json({
-      success: false,
-      message: 'İlanlar getirilirken bir hata oluştu'
-    }, { status: 500 });
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'İlanlar getirilirken bir hata oluştu' 
+      },
+      { status: 500 }
+    );
   }
 }

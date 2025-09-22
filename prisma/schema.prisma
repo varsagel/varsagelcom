@@ -18,6 +18,7 @@ model User {
   password               String
   phone                  String?
   avatar                 String?
+  role                   String   @default("USER") // USER, ADMIN
   isActive               Boolean  @default(true)
   passwordResetToken     String?
   passwordResetExpiresAt DateTime?
@@ -26,28 +27,168 @@ model User {
   
   // Relations
   listings               Listing[]
+  buyerListings          BuyerListing[]
+  sellerOffers           Offer[]  @relation("SellerOffers")
+  buyerOffers            Offer[]  @relation("BuyerOffers")
+  sentMessages           Message[] @relation("SentMessages")
+  receivedMessages       Message[] @relation("ReceivedMessages")
+  askedQuestions         Question[] @relation("AskedQuestions")
+  answeredQuestions      Question[] @relation("AnsweredQuestions")
+  favorites              Favorite[]
+  notifications          Notification[]
 
   @@map("users")
 }
 
 model Listing {
   id                    String   @id @default(cuid())
+  listingNumber         String   @unique // 6 haneli benzersiz ilan numarası
   title                 String
   description           String
-  price                 Float
+  minPrice              Float?
+  maxPrice              Float?
   location              String
   categoryId            String
   subCategoryId         String
   categorySpecificData  String   // JSON string for category-specific fields
   images                String   // JSON array of image URLs
-  status                String   @default("active") // active, sold, inactive
+  status                String   @default("active") // active, sold, inactive, expired
   views                 Int      @default(0)
   userId                String
+  expiresAt             DateTime? // İlan süresi 1 ay
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offers                Offer[]
+  favorites             Favorite[]
+  questions             Question[]
+  messages              Message[]
+  
+  @@map("listings")
+}
+
+model BuyerListing {
+  id                    String   @id @default(cuid())
+  title                 String
+  description           String
+  category              String
+  subcategory           String
+  minPrice              Float
+  maxPrice              Float
+  city                  String
+  district              String
+  urgency               String   @default("medium") // low, medium, high
+  condition             String   // Sıfır, Az Kullanılmış, İyi Durumda, etc.
+  specifications        String   // JSON string for category-specific requirements
+  status                String   @default("active") // active, closed, expired
+  views                 Int      @default(0)
+  userId                String
+  expiresAt             DateTime? // İlan süresi 1 ay
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   
   // Relations
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  @@map("listings")
+  @@map("buyer_listings")
+}
+
+model Offer {
+  id                    String   @id @default(cuid())
+  offerNumber           String   @unique // Benzersiz teklif numarası
+  listingId             String
+  sellerId              String   // Teklif veren satıcı
+  buyerId               String   // İlan sahibi alıcı
+  amount                Float    // Teklif edilen miktar
+  price                 Float
+  description           String
+  categorySpecificData  String   // JSON string for category-specific offer details
+  status                String   @default("pending") // pending, accepted, rejected, expired, inactive
+  rejectionReason       String?  // Reddetme nedeni (zorunlu)
+  rejectionCount        Int      @default(0)
+  lastRejectedAt        DateTime?
+  canOfferAgainAt       DateTime? // 2 saat sonra tekrar teklif verebilir
+  expiresAt             DateTime // Pasif teklifler 1 ay sonra silinir
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  listing               Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  seller                User     @relation("SellerOffers", fields: [sellerId], references: [id], onDelete: Cascade)
+  buyer                 User     @relation("BuyerOffers", fields: [buyerId], references: [id], onDelete: Cascade)
+  messages              Message[]
+  
+  @@map("offers")
+}
+
+model Message {
+  id                    String   @id @default(cuid())
+  offerId               String?  // Teklif ile ilgili mesaj
+  listingId             String?  // İlan ile ilgili soru
+  senderId              String
+  receiverId            String
+  content               String
+  isRead                Boolean  @default(false)
+  messageType           String   @default("text") // text, image, system
+  createdAt             DateTime @default(now())
+  
+  // Relations
+  offer                 Offer?   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  listing               Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  sender                User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver              User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  @@map("messages")
+}
+
+model Question {
+  id                    String   @id @default(cuid())
+  listingId             String
+  askerId               String
+  ownerId               String
+  question              String
+  answer                String?
+  isAnswered            Boolean  @default(false)
+  isPublic              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  answeredAt            DateTime?
+  
+  // Relations
+  listing               Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  asker                 User     @relation("AskedQuestions", fields: [askerId], references: [id], onDelete: Cascade)
+  owner                 User     @relation("AnsweredQuestions", fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  @@map("questions")
+}
+
+model Favorite {
+  id                    String   @id @default(cuid())
+  userId                String
+  listingId             String
+  createdAt             DateTime @default(now())
+  
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing               Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, listingId])
+  @@map("favorites")
+}
+
+model Notification {
+  id                    String   @id @default(cuid())
+  userId                String
+  title                 String
+  message               String
+  type                  String   // offer_received, offer_accepted, offer_rejected, message_received, question_asked, etc.
+  relatedId             String?  // İlgili offer, listing, message id'si
+  isRead                Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
 }

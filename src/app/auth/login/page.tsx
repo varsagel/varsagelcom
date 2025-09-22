@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -63,44 +64,31 @@ export default function LoginPage() {
     setSuccessMessage('');
     
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }),
+      console.log('Giriş yapma işlemi başlatılıyor...', { email: formData.email });
+      
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
       });
 
-      const data = await response.json();
+      console.log('SignIn sonucu:', result);
 
-      if (!response.ok) {
-        if (data.details) {
-          // Handle validation errors
-          const newErrors: Record<string, string> = {};
-          Object.entries(data.details).forEach(([key, messages]) => {
-            if (Array.isArray(messages) && messages.length > 0) {
-              newErrors[key] = messages[0];
-            }
-          });
-          setErrors(newErrors);
-        } else {
-          setErrors({ general: data.error || 'Giriş sırasında bir hata oluştu' });
-        }
+      if (result?.error) {
+        console.error('SignIn hatası:', result.error);
+        setErrors({ general: 'E-posta veya şifre hatalı' });
         return;
       }
 
-      // Success
-      setSuccessMessage('Giriş başarılı! Ana sayfaya yönlendiriliyorsunuz...');
-      
-      // Update auth state
-      login(data.user);
-      
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
+      if (result?.ok) {
+        console.log('Giriş başarılı!');
+        // Success
+        setSuccessMessage('Giriş başarılı! Ana sayfaya yönlendiriliyorsunuz...');
+        
+        setTimeout(() => {
+          router.push('/');
+        }, 1500);
+      }
       
     } catch (error) {
       console.error("Giriş hatası:", error);

@@ -1,10 +1,18 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 interface User {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
   firstName: string;
   lastName: string;
 }
@@ -14,74 +22,56 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = status === 'loading';
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          // Verify token and get user data
-          const response = await fetch('/api/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-          } else {
-            localStorage.removeItem('token');
-          }
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
+    console.log('AuthContext: Session değişti:', session);
+    console.log('AuthContext: Session status:', status);
+    
+    // Update user state when session changes
+    if (session?.user) {
+      console.log('AuthContext: Session var, kullanıcı verisi session\'dan alınıyor...');
+      // Use session data directly instead of fetching from API
+      const userData: User = {
+        id: session.user.id,
+        email: session.user.email,
+        firstName: session.user.firstName,
+        lastName: session.user.lastName,
+      };
+      console.log('AuthContext: Kullanıcı verisi session\'dan alındı:', userData);
+      setUser(userData);
+    } else {
+      console.log('AuthContext: Session yok, kullanıcı null yapılıyor');
+      setUser(null);
+    }
+  }, [session]);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       });
 
-      if (response.ok) {
-        const { token, user } = await response.json();
-        localStorage.setItem('token', token);
-        setUser(user);
-      } else {
-        throw new Error('Login failed');
+      if (result?.error) {
+        throw new Error(result.error);
       }
     } catch (error) {
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const register = async (userData: any) => {
-    setIsLoading(true);
+  const register = async (userData: RegisterData) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -92,22 +82,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.ok) {
-        const { token, user } = await response.json();
-        localStorage.setItem('token', token);
-        setUser(user);
+        // After successful registration, sign in with NextAuth
+        await signIn('credentials', {
+          email: userData.email,
+          password: userData.password,
+          redirect: false,
+        });
       } else {
-        throw new Error('Registration failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Registration failed');
       }
     } catch (error) {
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
+    signOut({ redirect: false });
   };
 
   const value = {

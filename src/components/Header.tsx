@@ -1,13 +1,10 @@
 "use client";
 
-import { Search, ShoppingCart, User, Menu, Heart, Bell, LogOut } from "lucide-react";
+import { User, Menu, Heart, Bell, LogOut, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { getAllCategories } from "@/data/categories";
-
-const categories = getAllCategories();
 
 export default function Header() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
@@ -28,50 +25,20 @@ export default function Header() {
           
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/" className="text-gray-700 hover:text-blue-600 transition-colors">Ana Sayfa</Link>
-            <div className="relative group">
-              <button className="text-gray-700 hover:text-blue-600 transition-colors flex items-center space-x-1">
-                <span>Kategoriler</span>
-                <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="p-4">
-                  <div className="grid grid-cols-1 gap-2">
-                    {categories.slice(0, 6).map((category) => (
-                      <Link
-                        key={category.id}
-                        href={`/categories/${category.id}`}
-                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <span className="text-lg">{category.icon}</span>
-                        <div>
-                          <div className="font-medium text-gray-900">{category.name}</div>
-                          <div className="text-xs text-gray-500">{category.subcategories.length} alt kategori</div>
-                        </div>
-                      </Link>
-                    ))}
-                    {categories.length > 6 && (
-                      <Link
-                        href="/categories"
-                        className="text-center p-2 text-blue-600 hover:text-blue-700 font-medium text-sm border-t border-gray-100 mt-2 pt-3"
-                      >
-                        Tüm Kategoriler →
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <Link href="/create-listing" className="text-gray-700 hover:text-blue-600 transition-colors">İlan Ver</Link>
-            <Link href="#" className="text-gray-700 hover:text-blue-600 transition-colors">Nasıl Çalışır</Link>
-            <Link href="#" className="text-gray-700 hover:text-blue-600 transition-colors">Yardım</Link>
+            <Link href="/listings" className="text-gray-700 hover:text-blue-600 transition-colors">İlanlar</Link>
           </nav>
 
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5" />
-            </Button>
+            <Link href="/notifications">
+              <Button variant="ghost" size="icon">
+                <Bell className="h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/messages">
+              <Button variant="ghost" size="icon">
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon">
               <Heart className="h-5 w-5" />
             </Button>

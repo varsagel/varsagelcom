@@ -52,7 +52,7 @@ export default function RegisterPage() {
 
     if (!formData.email.trim()) {
       newErrors.email = "E-posta alanı zorunludur";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!/^[^\s@çÇğĞıİöÖşŞüÜ]+@[^\s@çÇğĞıİöÖşŞüÜ]+\.[^\s@çÇğĞıİöÖşŞüÜ]+$/.test(formData.email)) {
       newErrors.email = "Geçerli bir e-posta adresi giriniz";
     }
 
